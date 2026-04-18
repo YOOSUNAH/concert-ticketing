@@ -1,28 +1,37 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '4.0.5'
-	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.springframework.boot' version '4.0.5' apply false
+	id 'io.spring.dependency-management' version '1.1.7' apply false
 }
 
-group = 'com.concertticketing'
-version = '0.0.1-SNAPSHOT'
+subprojects {
+	apply plugin: 'java-library'
+	apply plugin: 'io.spring.dependency-management'
 
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
+	group = 'com.concertticketing'
+	version = '0.0.1-SNAPSHOT'
+
+	java {
+		toolchain {
+			languageVersion = JavaLanguageVersion.of(21)
+		}
 	}
-}
 
-repositories {
-	mavenCentral()
-}
+	repositories {
+		mavenCentral()
+	}
 
-dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
+	dependencyManagement {
+		imports {
+			mavenBom "org.springframework.boot:spring-boot-dependencies:4.0.5"
+		}
+	}
 
-tasks.named('test') {
-	useJUnitPlatform()
+	dependencies {
+		testImplementation 'org.springframework.boot:spring-boot-starter-test'
+		testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	}
+
+	tasks.named('test') {
+		useJUnitPlatform()
+	}
 }
