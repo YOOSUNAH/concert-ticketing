@@ -1,3 +1,6 @@
 plugins {
     id 'org.springframework.boot' version '4.0.5' apply false
 }
+
+group = 'com.concertticketing'
+version = '0.0.1-SNAPSHOT'
