@@ -1,0 +1,7 @@
+plugins {
+    id 'concertticketing.java-conventions'
+}
+
+dependencies {
+    implementation project(':shared')
+}
