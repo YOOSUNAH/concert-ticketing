@@ -1,33 +1,38 @@
 package com.concertticketing.domain.schedule.controller;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-@SpringBootTest
-@AutoConfigureMockMvc
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class ScheduleControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @LocalServerPort
+    private int port;
+
+    private WebTestClient webTestClient;
+
+    @BeforeEach
+    void setUp() {
+        webTestClient = WebTestClient.bindToServer()
+                .baseUrl("http://localhost:" + port)
+                .build();
+    }
 
     @Test
-    void 좌석_목록_조회_성공() throws Exception {
-        mockMvc.perform(get("/schedules/1/seats")
-                        .header("Authorization", "Bearer test-token"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.seats").isArray())
-                .andExpect(jsonPath("$.seats[0].seatId").value(101))
-                .andExpect(jsonPath("$.seats[0].seatNumber").value("A-1"))
-                .andExpect(jsonPath("$.seats[0].grade").value("VIP"))
-                .andExpect(jsonPath("$.seats[0].price").value(121000))
-                .andExpect(jsonPath("$.seats[0].status").value("AVAILABLE"));
+    void 좌석_목록_조회_성공() {
+        webTestClient.get().uri("/schedules/1/seats")
+                .header("Authorization", "Bearer test-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.seats").isArray()
+                .jsonPath("$.seats[0].seatId").isEqualTo(101)
+                .jsonPath("$.seats[0].seatNumber").isEqualTo("A-1")
+                .jsonPath("$.seats[0].grade").isEqualTo("VIP")
+                .jsonPath("$.seats[0].price").isEqualTo(121000)
+                .jsonPath("$.seats[0].status").isEqualTo("AVAILABLE");
     }
 }

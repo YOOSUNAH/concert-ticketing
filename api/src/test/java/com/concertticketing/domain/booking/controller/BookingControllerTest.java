@@ -1,101 +1,103 @@
 package com.concertticketing.domain.booking.controller;
 
 import com.concertticketing.domain.booking.dto.BookingCreateRequest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.ObjectMapper;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
 import java.util.List;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-@SpringBootTest
-@AutoConfigureMockMvc
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class BookingControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @LocalServerPort
+    private int port;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private WebTestClient webTestClient;
+
+    @BeforeEach
+    void setUp() {
+        webTestClient = WebTestClient.bindToServer()
+                .baseUrl("http://localhost:" + port)
+                .build();
+    }
 
     @Test
-    void 예매_생성_성공() throws Exception {
+    void 예매_생성_성공() {
         BookingCreateRequest request = new BookingCreateRequest(1L, List.of(101L, 102L), "admission-token");
 
-        mockMvc.perform(post("/bookings")
-                        .header("Authorization", "Bearer test-token")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.bookingId").value(999))
-                .andExpect(jsonPath("$.totalAmount").value(242000))
-                .andExpect(jsonPath("$.bookerName").value("홍길동"));
+        webTestClient.post().uri("/bookings")
+                .header("Authorization", "Bearer test-token")
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody()
+                .jsonPath("$.bookingId").isEqualTo(999)
+                .jsonPath("$.totalAmount").isEqualTo(242000)
+                .jsonPath("$.bookerName").isEqualTo("홍길동");
     }
 
     @Test
-    void 예매_내역_조회_성공() throws Exception {
-        mockMvc.perform(get("/bookings/me")
-                        .header("Authorization", "Bearer test-token")
-                        .param("page", "0")
-                        .param("size", "10"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content[0].bookingId").value(999))
-                .andExpect(jsonPath("$.content[0].concertTitle").value("10cm 콘서트"))
-                .andExpect(jsonPath("$.content[0].date").value("2025-08-01"))
-                .andExpect(jsonPath("$.content[0].time").value("19:00"))
-                .andExpect(jsonPath("$.content[0].seats").isArray())
-                .andExpect(jsonPath("$.content[0].seats[0]").value("A-1"))
-                .andExpect(jsonPath("$.content[0].seats[1]").value("A-2"))
-                .andExpect(jsonPath("$.content[0].totalAmount").value(242000))
-                .andExpect(jsonPath("$.content[0].status").value("PAID"))
-                .andExpect(jsonPath("$.page").value(0))
-                .andExpect(jsonPath("$.size").value(10))
-                .andExpect(jsonPath("$.totalElements").value(5))
-                .andExpect(jsonPath("$.totalPages").value(1))
-                .andExpect(jsonPath("$.hasNext").value(false));
+    void 예매_내역_조회_성공() {
+        webTestClient.get().uri("/bookings/me?page=0&size=10")
+                .header("Authorization", "Bearer test-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.content").isArray()
+                .jsonPath("$.content[0].bookingId").isEqualTo(999)
+                .jsonPath("$.content[0].concertTitle").isEqualTo("10cm 콘서트")
+                .jsonPath("$.content[0].date").isEqualTo("2025-08-01")
+                .jsonPath("$.content[0].time").isEqualTo("19:00")
+                .jsonPath("$.content[0].seats").isArray()
+                .jsonPath("$.content[0].seats[0]").isEqualTo("A-1")
+                .jsonPath("$.content[0].seats[1]").isEqualTo("A-2")
+                .jsonPath("$.content[0].totalAmount").isEqualTo(242000)
+                .jsonPath("$.content[0].status").isEqualTo("PAID")
+                .jsonPath("$.page").isEqualTo(0)
+                .jsonPath("$.size").isEqualTo(10)
+                .jsonPath("$.totalElements").isEqualTo(5)
+                .jsonPath("$.totalPages").isEqualTo(1)
+                .jsonPath("$.hasNext").isEqualTo(false);
     }
 
     @Test
-    void 예매_내역_상세_조회_성공() throws Exception {
-        mockMvc.perform(get("/bookings/1")
-                        .header("Authorization", "Bearer test-token"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.bookingId").value(1))
-                .andExpect(jsonPath("$.bookingNumber").value("BK20250801001"))
-                .andExpect(jsonPath("$.concertTitle").value("10cm 콘서트"))
-                .andExpect(jsonPath("$.venue").value("올림픽공원"))
-                .andExpect(jsonPath("$.date").value("2025-08-01"))
-                .andExpect(jsonPath("$.time").value("19:00"))
-                .andExpect(jsonPath("$.seats[0]").value("A-1"))
-                .andExpect(jsonPath("$.seats[1]").value("A-2"))
-                .andExpect(jsonPath("$.totalAmount").value(242000))
-                .andExpect(jsonPath("$.paidAmount").value(237000))
-                .andExpect(jsonPath("$.pointUsed").value(5000))
-                .andExpect(jsonPath("$.paymentMethod").value("CARD"))
-                .andExpect(jsonPath("$.ticketType").value("MOBILE"))
-                .andExpect(jsonPath("$.status").value("PAID"))
-                .andExpect(jsonPath("$.paidAt").value("2025-08-01T18:30:00"));
+    void 예매_내역_상세_조회_성공() {
+        webTestClient.get().uri("/bookings/1")
+                .header("Authorization", "Bearer test-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.bookingId").isEqualTo(1)
+                .jsonPath("$.bookingNumber").isEqualTo("BK20250801001")
+                .jsonPath("$.concertTitle").isEqualTo("10cm 콘서트")
+                .jsonPath("$.venue").isEqualTo("올림픽공원")
+                .jsonPath("$.date").isEqualTo("2025-08-01")
+                .jsonPath("$.time").isEqualTo("19:00")
+                .jsonPath("$.seats[0]").isEqualTo("A-1")
+                .jsonPath("$.seats[1]").isEqualTo("A-2")
+                .jsonPath("$.totalAmount").isEqualTo(242000)
+                .jsonPath("$.paidAmount").isEqualTo(237000)
+                .jsonPath("$.pointUsed").isEqualTo(5000)
+                .jsonPath("$.paymentMethod").isEqualTo("CARD")
+                .jsonPath("$.ticketType").isEqualTo("MOBILE")
+                .jsonPath("$.status").isEqualTo("PAID")
+                .jsonPath("$.paidAt").isEqualTo("2025-08-01T18:30:00");
     }
 
     @Test
-    void 예매_취소_성공() throws Exception {
-        mockMvc.perform(delete("/bookings/1")
-                        .header("Authorization", "Bearer test-token"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.bookingId").value(1))
-                .andExpect(jsonPath("$.bookingNumber").value("BK20250801001"))
-                .andExpect(jsonPath("$.status").value("CANCELLED"))
-                .andExpect(jsonPath("$.cancelledAmount").value(242000))
-                .andExpect(jsonPath("$.cancelledAt").value("2025-08-01T20:00:00"));
+    void 예매_취소_성공() {
+        webTestClient.delete().uri("/bookings/1")
+                .header("Authorization", "Bearer test-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.bookingId").isEqualTo(1)
+                .jsonPath("$.bookingNumber").isEqualTo("BK20250801001")
+                .jsonPath("$.status").isEqualTo("CANCELLED")
+                .jsonPath("$.cancelledAmount").isEqualTo(242000)
+                .jsonPath("$.cancelledAt").isEqualTo("2025-08-01T20:00:00");
     }
 }
