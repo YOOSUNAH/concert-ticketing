@@ -17,18 +17,10 @@ public class ScheduleController {
     // 잔여 좌석 조회 - Private
     @GetMapping("/{scheduleId}/seats")
     public ResponseEntity<SeatListResponse> getSeats(@PathVariable Long scheduleId) {
-        SeatListResponse.SeatItem seat = SeatListResponse.SeatItem.builder()
-                .seatId(101L)
-                .seatNumber("A-1")
-                .grade("VIP")
-                .price(121000)
-                .status(SeatStatus.AVAILABLE)
-                .build();
-
-        SeatListResponse response = SeatListResponse.builder()
-                .seats(List.of(seat))
-                .build();
-
+        SeatListResponse.SeatItem seat = new SeatListResponse.SeatItem(
+                101L, "A-1", "VIP", 121000, SeatStatus.AVAILABLE
+        );
+        SeatListResponse response = new SeatListResponse(List.of(seat));
         return ResponseEntity.ok(response);
     }
 }

@@ -1,17 +1,17 @@
 package com.concertticketing.domain.schedule.dto;
 
-import lombok.Builder;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.List;
 
 @Getter
-@Builder
+@AllArgsConstructor
 public class SeatListResponse {
     private List<SeatItem> seats;
 
     @Getter
-    @Builder
+    @AllArgsConstructor
     public static class SeatItem {
         private Long seatId;
         private String seatNumber;

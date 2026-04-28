@@ -25,12 +25,7 @@ public class BookingController {
     // 예매 생성 - Private
     @PostMapping
     public ResponseEntity<BookingCreateResponse> createBooking(@RequestBody BookingCreateRequest request) {
-        BookingCreateResponse response = BookingCreateResponse.builder()
-                .bookingId(999L)
-                .totalAmount(242000)
-                .bookerName("홍길동")
-                .build();
-
+        BookingCreateResponse response = new BookingCreateResponse(999L, 242000, "홍길동");
         return ResponseEntity.status(201).body(response);
     }
 
@@ -40,62 +35,33 @@ public class BookingController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        BookingListResponse.BookingItem item = BookingListResponse.BookingItem.builder()
-                .bookingId(999L)
-                .concertTitle("10cm 콘서트")
-                .date("2025-08-01")
-                .time("19:00")
-                .seats(List.of("A-1", "A-2"))
-                .totalAmount(242000)
-                .status(BookingStatus.PAID)
-                .build();
-
-        BookingListResponse response = BookingListResponse.builder()
-                .content(List.of(item))
-                .page(page)
-                .size(size)
-                .totalElements(5)
-                .totalPages(1)
-                .hasNext(false)
-                .build();
-
+        BookingListResponse.BookingItem item = new BookingListResponse.BookingItem(
+                999L, "10cm 콘서트", "2025-08-01", "19:00",
+                List.of("A-1", "A-2"), 242000, BookingStatus.PAID
+        );
+        BookingListResponse response = new BookingListResponse(List.of(item), page, size, 5L, 1, false);
         return ResponseEntity.ok(response);
     }
 
     // 예매 내역 상세 조회 - Private
     @GetMapping("/{bookingId}")
     public ResponseEntity<BookingDetailResponse> getBooking(@PathVariable Long bookingId) {
-        BookingDetailResponse response = BookingDetailResponse.builder()
-                .bookingId(bookingId)
-                .bookingNumber("BK20250801001")
-                .concertTitle("10cm 콘서트")
-                .venue("올림픽공원")
-                .date("2025-08-01")
-                .time("19:00")
-                .seats(List.of("A-1", "A-2"))
-                .totalAmount(242000)
-                .paidAmount(237000)
-                .pointUsed(5000)
-                .paymentMethod("CARD")
-                .ticketType("MOBILE")
-                .status(BookingStatus.PAID)
-                .paidAt("2025-08-01T18:30:00")
-                .build();
-
+        BookingDetailResponse response = new BookingDetailResponse(
+                bookingId, "BK20250801001", "10cm 콘서트", "올림픽공원",
+                "2025-08-01", "19:00", List.of("A-1", "A-2"),
+                242000, 237000, 5000, "CARD", "MOBILE",
+                BookingStatus.PAID, "2025-08-01T18:30:00"
+        );
         return ResponseEntity.ok(response);
     }
 
     // 예매 취소 - Private
     @DeleteMapping("/{bookingId}")
     public ResponseEntity<BookingCancelResponse> cancelBooking(@PathVariable Long bookingId) {
-        BookingCancelResponse response = BookingCancelResponse.builder()
-                .bookingId(bookingId)
-                .bookingNumber("BK20250801001")
-                .status(BookingStatus.CANCELLED)
-                .cancelledAmount(242000)
-                .cancelledAt("2025-08-01T20:00:00")
-                .build();
-
+        BookingCancelResponse response = new BookingCancelResponse(
+                bookingId, "BK20250801001", BookingStatus.CANCELLED,
+                242000, "2025-08-01T20:00:00"
+        );
         return ResponseEntity.ok(response);
     }
 }

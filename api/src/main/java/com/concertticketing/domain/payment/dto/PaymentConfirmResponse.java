@@ -1,13 +1,13 @@
 package com.concertticketing.domain.payment.dto;
 
 import com.concertticketing.domain.booking.dto.BookingStatus;
-import lombok.Builder;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.List;
 
 @Getter
-@Builder
+@AllArgsConstructor
 public class PaymentConfirmResponse {
     private String bookingNumber;
     private BookingStatus status;

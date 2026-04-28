@@ -22,25 +22,12 @@ public class ConcertController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        ConcertListResponse.ConcertItem item = ConcertListResponse.ConcertItem.builder()
-                .concertId(1L)
-                .title("10cm 콘서트")
-                .artist("10cm")
-                .thumbnailUrl("https://example.com/thumbnail.jpg")
-                .venue("올림픽공원")
-                .startDate("2025-08-01")
-                .endDate("2025-08-02")
-                .status(ConcertStatus.OPEN)
-                .build();
+        ConcertListResponse.ConcertItem item = new ConcertListResponse.ConcertItem(
+                1L, "10cm 콘서트", "10cm", "https://example.com/thumbnail.jpg",
+                "올림픽공원", "2025-08-01", "2025-08-02", ConcertStatus.OPEN
+        );
 
-        ConcertListResponse response = ConcertListResponse.builder()
-                .content(List.of(item))
-                .page(page)
-                .size(size)
-                .totalElements(50)
-                .totalPages(5)
-                .hasNext(true)
-                .build();
+        ConcertListResponse response = new ConcertListResponse(List.of(item), page, size, 50L, 5, true);
 
         return ResponseEntity.ok(response);
     }
@@ -48,25 +35,15 @@ public class ConcertController {
     // 콘서트 상세 조회 - Public
     @GetMapping("/{concertId}")
     public ResponseEntity<ConcertDetailResponse> getConcert(@PathVariable Long concertId) {
-        ConcertDetailResponse.ScheduleItem schedule = ConcertDetailResponse.ScheduleItem.builder()
-                .scheduleId(1L)
-                .date("2025-08-01")
-                .time("19:00")
-                .totalSeats(500)
-                .remainingSeats(120)
-                .build();
+        ConcertDetailResponse.ScheduleItem schedule = new ConcertDetailResponse.ScheduleItem(
+                1L, "2025-08-01", "19:00", 500, 120
+        );
 
-        ConcertDetailResponse response = ConcertDetailResponse.builder()
-                .concertId(concertId)
-                .title("10cm 콘서트")
-                .artist("10cm")
-                .description("공연 설명")
-                .venue("올림픽공원")
-                .posterUrl("https://example.com/poster.jpg")
-                .schedules(List.of(schedule))
-                .maxTicketsPerPerson(2)
-                .status(ConcertStatus.OPEN)
-                .build();
+        ConcertDetailResponse response = new ConcertDetailResponse(
+                concertId, "10cm 콘서트", "10cm", "공연 설명",
+                "올림픽공원", "https://example.com/poster.jpg",
+                List.of(schedule), 2, ConcertStatus.OPEN
+        );
 
         return ResponseEntity.ok(response);
     }

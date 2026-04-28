@@ -1,10 +1,10 @@
 package com.concertticketing.domain.queue.dto;
 
-import lombok.Builder;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@Builder
+@AllArgsConstructor
 public class QueueEnterResponse {
     private String queueToken;
     private int rank;

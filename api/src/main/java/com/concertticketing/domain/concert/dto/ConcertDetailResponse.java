@@ -1,12 +1,12 @@
 package com.concertticketing.domain.concert.dto;
 
-import lombok.Builder;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.List;
 
 @Getter
-@Builder
+@AllArgsConstructor
 public class ConcertDetailResponse {
     private Long concertId;
     private String title;
@@ -19,7 +19,7 @@ public class ConcertDetailResponse {
     private ConcertStatus status;
 
     @Getter
-    @Builder
+    @AllArgsConstructor
     public static class ScheduleItem {
         private Long scheduleId;
         private String date;

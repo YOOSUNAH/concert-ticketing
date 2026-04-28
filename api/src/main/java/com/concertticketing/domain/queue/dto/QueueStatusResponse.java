@@ -1,12 +1,14 @@
 package com.concertticketing.domain.queue.dto;
 
-import lombok.Builder;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.springframework.lang.Nullable;
 
 @Getter
-@Builder
+@AllArgsConstructor
 public class QueueStatusResponse {
     private int rank;
     private QueueStatus status;
+    @Nullable
     private String admissionToken;
 }

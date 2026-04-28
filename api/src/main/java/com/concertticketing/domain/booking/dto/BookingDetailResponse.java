@@ -1,12 +1,12 @@
 package com.concertticketing.domain.booking.dto;
 
-import lombok.Builder;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.List;
 
 @Getter
-@Builder
+@AllArgsConstructor
 public class BookingDetailResponse {
     private Long bookingId;
     private String bookingNumber;

@@ -1,12 +1,12 @@
 package com.concertticketing.domain.booking.dto;
 
-import lombok.Builder;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.List;
 
 @Getter
-@Builder
+@AllArgsConstructor
 public class BookingListResponse {
     private List<BookingItem> content;
     private int page;
@@ -16,7 +16,7 @@ public class BookingListResponse {
     private boolean hasNext;
 
     @Getter
-    @Builder
+    @AllArgsConstructor
     public static class BookingItem {
         private Long bookingId;
         private String concertTitle;

@@ -19,24 +19,16 @@ public class QueueController {
     // 대기열 입장 - Private
     @PostMapping("/enter")
     public ResponseEntity<QueueEnterResponse> enterQueue(@RequestBody QueueEnterRequest request) {
-        QueueEnterResponse response = QueueEnterResponse.builder()
-                .queueToken("550e8400-e29b-41d4-a716-446655440000")
-                .rank(3842)
-                .estimatedWaitSeconds(192)
-                .build();
-
+        QueueEnterResponse response = new QueueEnterResponse(
+                "550e8400-e29b-41d4-a716-446655440000", 3842, 192
+        );
         return ResponseEntity.ok(response);
     }
 
     // 대기 순번 조회 - Private
     @GetMapping("/status")
     public ResponseEntity<QueueStatusResponse> getQueueStatus(@RequestParam String queueToken) {
-        QueueStatusResponse response = QueueStatusResponse.builder()
-                .rank(120)
-                .status(QueueStatus.WAITING)
-                .admissionToken(null)
-                .build();
-
+        QueueStatusResponse response = new QueueStatusResponse(120, QueueStatus.WAITING, null);
         return ResponseEntity.ok(response);
     }
 }
