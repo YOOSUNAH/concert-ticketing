@@ -5,6 +5,8 @@ import com.concertticketing.domain.booking.entity.BookingStatus;
 import com.concertticketing.domain.booking.repository.BookingRepository;
 import com.concertticketing.domain.concert.entity.Concert;
 import com.concertticketing.domain.concert.repository.ConcertRepository;
+import com.concertticketing.domain.schedule.entity.Schedule;
+import com.concertticketing.domain.schedule.repository.ScheduleRepository;
 import com.concertticketing.domain.seat.entity.Seat;
 import com.concertticketing.domain.seat.entity.SeatStatus;
 import com.concertticketing.domain.seat.repository.SeatRepository;
@@ -18,13 +20,16 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final SeatRepository seatRepository;
     private final ConcertRepository concertRepository;
+    private final ScheduleRepository scheduleRepository;
 
     public BookingService(BookingRepository bookingRepository,
                           SeatRepository seatRepository,
-                          ConcertRepository concertRepository) {
+                          ConcertRepository concertRepository,
+                          ScheduleRepository scheduleRepository) {
         this.bookingRepository = bookingRepository;
         this.seatRepository = seatRepository;
         this.concertRepository = concertRepository;
+        this.scheduleRepository = scheduleRepository;
     }
 
     /**
@@ -48,8 +53,11 @@ public class BookingService {
             }
         }
 
-        // 2. 1인 최대 예매 수량 확인
-        Concert concert = concertRepository.findById(scheduleId)
+        // 2. 1인 최대 예매 수량 확인 (scheduleId → concertId → Concert)
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스케줄입니다."));
+
+        Concert concert = concertRepository.findById(schedule.getConcertId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 콘서트입니다."));
 
         int alreadyBooked = bookingRepository.countSeatsByUserIdAndScheduleId(userId, scheduleId);
