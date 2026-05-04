@@ -1,9 +1,11 @@
 package com.concertticketing.domain.booking.service;
 
 import com.concertticketing.domain.booking.entity.Booking;
+import com.concertticketing.domain.booking.entity.BookingStatus;
 import com.concertticketing.domain.booking.repository.BookingRepository;
 import com.concertticketing.domain.concert.entity.Concert;
 import com.concertticketing.domain.concert.repository.ConcertRepository;
+import com.concertticketing.domain.payment.service.PaymentService;
 import com.concertticketing.domain.schedule.entity.Schedule;
 import com.concertticketing.domain.schedule.repository.ScheduleRepository;
 import com.concertticketing.domain.seat.entity.Seat;
@@ -21,15 +23,18 @@ public class BookingService {
     private final SeatRepository seatRepository;
     private final ConcertRepository concertRepository;
     private final ScheduleRepository scheduleRepository;
+    private final PaymentService paymentService;
 
     public BookingService(BookingRepository bookingRepository,
                           SeatRepository seatRepository,
                           ConcertRepository concertRepository,
-                          ScheduleRepository scheduleRepository) {
+                          ScheduleRepository scheduleRepository,
+                          PaymentService paymentService) {
         this.bookingRepository = bookingRepository;
         this.seatRepository = seatRepository;
         this.concertRepository = concertRepository;
         this.scheduleRepository = scheduleRepository;
+        this.paymentService = paymentService;
     }
 
     /**
@@ -111,7 +116,8 @@ public class BookingService {
     /**
      * 예매 취소 (1매 단위)
      * 1. 예매 상태를 CANCELLED로 변경
-     * 2. 좌석 상태를 AVAILABLE로 복구
+     * 2. PAID 상태였다면 결제 환불 처리
+     * 3. 좌석 상태를 AVAILABLE로 복구
      */
     public Booking cancelBooking(Long bookingId, Long userId) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -121,10 +127,16 @@ public class BookingService {
             throw new IllegalArgumentException("본인의 예매만 취소할 수 있습니다.");
         }
 
-        // 1. 예매 취소
+        // 1. 예매 취소 (상태 변경 전 상태 보존)
+        BookingStatus before = booking.getStatus();
         booking.cancel();
 
-        // 2. 좌석 복구
+        // 2. 결제 완료 상태였다면 환불
+        if (before == BookingStatus.PAID) {
+            paymentService.refund(bookingId);
+        }
+
+        // 3. 좌석 복구
         Seat seat = seatRepository.findById(booking.getSeatId())
                 .orElseThrow(() -> new IllegalStateException("존재하지 않는 좌석입니다."));
         seat.markAsAvailable();

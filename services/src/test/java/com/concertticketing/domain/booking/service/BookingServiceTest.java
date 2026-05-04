@@ -6,6 +6,7 @@ import com.concertticketing.domain.booking.repository.BookingRepository;
 import com.concertticketing.domain.concert.entity.Concert;
 import com.concertticketing.domain.concert.entity.ConcertStatus;
 import com.concertticketing.domain.concert.repository.ConcertRepository;
+import com.concertticketing.domain.payment.service.PaymentService;
 import com.concertticketing.domain.schedule.entity.Schedule;
 import com.concertticketing.domain.schedule.repository.ScheduleRepository;
 import com.concertticketing.domain.seat.entity.Seat;
@@ -46,6 +47,9 @@ class BookingServiceTest {
 
     @Mock
     ScheduleRepository scheduleRepository;
+
+    @Mock
+    PaymentService paymentService;
 
     @InjectMocks
     BookingService bookingService;
@@ -141,9 +145,9 @@ class BookingServiceTest {
     // === 예매 취소 테스트 ===
 
     @Test
-    @DisplayName("예매 취소 성공 - 상태 CANCELLED + 좌석 복구")
-    void cancelBooking_success() {
-        // given
+    @DisplayName("예매 취소 성공 (PENDING) - 환불 호출 없이 좌석 복구")
+    void cancelBooking_pending_success() {
+        // given - PENDING 상태 booking
         Long bookingId = 999L;
         Long userId = 1L;
         Long seatId = 101L;
@@ -163,6 +167,34 @@ class BookingServiceTest {
         // then
         assertEquals(BookingStatus.CANCELLED, cancelled.getStatus());  // 예매 취소됨
         assertEquals(SeatStatus.AVAILABLE, seat.getStatus());          // 좌석 복구됨
+        verify(paymentService, never()).refund(anyLong());             // 환불 호출 없음
+    }
+
+    @Test
+    @DisplayName("예매 취소 성공 (PAID) - 환불 호출 + 좌석 복구")
+    void cancelBooking_paid_callsRefund() {
+        // given - PAID 상태 booking
+        Long bookingId = 999L;
+        Long userId = 1L;
+        Long seatId = 101L;
+
+        Booking booking = new Booking(userId, 1L, "BK20250801001", seatId, 121000);
+        booking.markAsPaid(); // PAID 상태로 만듦
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        Seat seat = new Seat(1L, "A-1", "VIP", 121000);
+        seat.markAsSold();
+        when(seatRepository.findById(seatId)).thenReturn(Optional.of(seat));
+
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        Booking cancelled = bookingService.cancelBooking(bookingId, userId);
+
+        // then
+        assertEquals(BookingStatus.CANCELLED, cancelled.getStatus());
+        assertEquals(SeatStatus.AVAILABLE, seat.getStatus());
+        verify(paymentService, times(1)).refund(bookingId);            // 환불 1회 호출
     }
 
     @Test
@@ -182,5 +214,6 @@ class BookingServiceTest {
 
         verify(bookingRepository, never()).save(any());
         verify(seatRepository, never()).findById(anyLong());
+        verify(paymentService, never()).refund(anyLong());             // 환불 호출 없음
     }
 }
