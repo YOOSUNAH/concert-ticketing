@@ -16,9 +16,10 @@ public interface BookingRepository {
     long countByUserId(Long userId);
 
     /**
-     * 해당 스케줄에서 사용자가 예매한 좌석 수 (PENDING + PAID만 집계, CANCELLED 제외)
+     * 해당 스케줄에서 사용자가 활성 상태로 보유한 Booking 개수 (PENDING + PAID, CANCELLED 제외)
+     * - 1Booking = 1매 모델이므로 이 개수가 곧 보유 매수
      * - 예매 후 취소하면 카운트에서 빠져야 재예매가 가능함
      * - 구현 시 WHERE status != 'CANCELLED' 조건 필수
      */
-    int countSeatsByUserIdAndScheduleId(Long userId, Long scheduleId);
+    int countActiveByUserIdAndScheduleId(Long userId, Long scheduleId);
 }

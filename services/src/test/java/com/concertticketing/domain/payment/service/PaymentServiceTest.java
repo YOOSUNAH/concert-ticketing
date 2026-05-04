@@ -12,7 +12,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -38,19 +37,19 @@ class PaymentServiceTest {
     @Test
     @DisplayName("결제 성공 - PENDING 상태 + 금액 일치")
     void confirmPayment_success() {
-        // given
+        // given - 1매 단가 121000
         Long bookingId = 999L;
-        Booking booking = new Booking(1L, 1L, "BK20250801001", List.of(101L, 102L), 242000);
+        Booking booking = new Booking(1L, 1L, "BK20250801001", 101L, 121000);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
         when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // when - 실결제액 237000 + 포인트 5000 = 총 242000
+        // when - 실결제액 116000 + 포인트 5000 = 총 121000
         Payment payment = paymentService.confirmPayment(
-                bookingId, "toss_key", "order_uuid", 237000, 5000, "CARD");
+                bookingId, "toss_key", "order_uuid", 116000, 5000, "CARD");
 
         // then
-        assertEquals(237000, payment.getAmount());
+        assertEquals(116000, payment.getAmount());
         assertEquals(5000, payment.getPointUsed());
         assertEquals(BookingStatus.PAID, booking.getStatus());  // 예매 상태가 PAID로 변경됨
         assertNotNull(payment.getPaidAt());
@@ -63,7 +62,7 @@ class PaymentServiceTest {
     void confirmPayment_alreadyPaid_throwsException() {
         // given - PAID 상태인 예매
         Long bookingId = 999L;
-        Booking booking = new Booking(1L, 1L, "BK20250801001", List.of(101L), 121000);
+        Booking booking = new Booking(1L, 1L, "BK20250801001", 101L, 121000);
         booking.markAsPaid(); // 이미 결제됨
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
@@ -78,15 +77,15 @@ class PaymentServiceTest {
     @Test
     @DisplayName("결제 실패 - 금액 불일치")
     void confirmPayment_amountMismatch_throwsException() {
-        // given - totalAmount는 242000인데
+        // given - 예매 금액 121000인데
         Long bookingId = 999L;
-        Booking booking = new Booking(1L, 1L, "BK20250801001", List.of(101L, 102L), 242000);
+        Booking booking = new Booking(1L, 1L, "BK20250801001", 101L, 121000);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
-        // when & then - 200000 + 5000 = 205000 ≠ 242000
+        // when & then - 100000 + 5000 = 105000 ≠ 121000
         assertThrows(IllegalArgumentException.class,
                 () -> paymentService.confirmPayment(
-                        bookingId, "toss_key", "order_uuid", 200000, 5000, "CARD"));
+                        bookingId, "toss_key", "order_uuid", 100000, 5000, "CARD"));
 
         verify(paymentRepository, never()).save(any());
     }

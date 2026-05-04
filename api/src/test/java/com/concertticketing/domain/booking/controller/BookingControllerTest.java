@@ -34,9 +34,10 @@ class BookingControllerTest {
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody()
-                .jsonPath("$.bookingId").isEqualTo(999)
-                .jsonPath("$.totalAmount").isEqualTo(242000)
-                .jsonPath("$.bookerName").isEqualTo("홍길동");
+                .jsonPath("$.bookingIds").isArray()
+                .jsonPath("$.bookingIds[0]").isEqualTo(999)
+                .jsonPath("$.bookingIds[1]").isEqualTo(1000)
+                .jsonPath("$.totalAmount").isEqualTo(242000);
     }
 
     @Test

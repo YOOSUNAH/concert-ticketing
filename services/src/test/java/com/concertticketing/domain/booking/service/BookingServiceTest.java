@@ -26,8 +26,9 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -52,7 +53,7 @@ class BookingServiceTest {
     // === 예매 생성 테스트 ===
 
     @Test
-    @DisplayName("예매 성공 - 좌석 AVAILABLE + 수량 미초과")
+    @DisplayName("예매 성공 - 좌석 N개 → Booking N건 생성")
     void createBooking_success() {
         // given
         Long userId = 1L;
@@ -71,18 +72,21 @@ class BookingServiceTest {
                 4, ConcertStatus.OPEN);
         when(concertRepository.findById(10L)).thenReturn(Optional.of(concert));
 
-        when(bookingRepository.countSeatsByUserIdAndScheduleId(userId, scheduleId)).thenReturn(0);
+        when(bookingRepository.countActiveByUserIdAndScheduleId(userId, scheduleId)).thenReturn(0);
         when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        Booking booking = bookingService.createBooking(userId, scheduleId, seatIds);
+        List<Booking> bookings = bookingService.createBooking(userId, scheduleId, seatIds);
 
         // then
-        assertEquals(242000, booking.getTotalAmount());          // 121000 × 2
-        assertEquals(BookingStatus.PENDING, booking.getStatus()); // 초기 상태는 PENDING
-        assertEquals(SeatStatus.SOLD, seat1.getStatus());         // 좌석이 SOLD로 변경됨
+        assertEquals(2, bookings.size());                                  // 좌석 수 = Booking 수
+        assertEquals(121000, bookings.get(0).getAmount());                 // 1매 단가
+        assertEquals(121000, bookings.get(1).getAmount());
+        assertEquals(BookingStatus.PENDING, bookings.get(0).getStatus());  // 초기 상태는 PENDING
+        assertEquals(BookingStatus.PENDING, bookings.get(1).getStatus());
+        assertEquals(SeatStatus.SOLD, seat1.getStatus());                  // 좌석이 SOLD로 변경됨
         assertEquals(SeatStatus.SOLD, seat2.getStatus());
-        verify(bookingRepository).save(any(Booking.class));
+        verify(bookingRepository, times(2)).save(any(Booking.class));      // 2건 save
     }
 
     @Test
@@ -125,7 +129,7 @@ class BookingServiceTest {
                 2, ConcertStatus.OPEN);
         when(concertRepository.findById(10L)).thenReturn(Optional.of(concert));
 
-        when(bookingRepository.countSeatsByUserIdAndScheduleId(userId, scheduleId)).thenReturn(1);
+        when(bookingRepository.countActiveByUserIdAndScheduleId(userId, scheduleId)).thenReturn(1);
 
         // when & then
         assertThrows(IllegalStateException.class,
@@ -142,16 +146,14 @@ class BookingServiceTest {
         // given
         Long bookingId = 999L;
         Long userId = 1L;
-        List<Long> seatIds = List.of(101L, 102L);
+        Long seatId = 101L;
 
-        Booking booking = new Booking(userId, 1L, "BK20250801001", seatIds, 242000);
+        Booking booking = new Booking(userId, 1L, "BK20250801001", seatId, 121000);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
-        Seat seat1 = new Seat(1L, "A-1", "VIP", 121000);
-        Seat seat2 = new Seat(1L, "A-2", "VIP", 121000);
-        seat1.markAsSold();
-        seat2.markAsSold();
-        when(seatRepository.findAllByIds(seatIds)).thenReturn(List.of(seat1, seat2));
+        Seat seat = new Seat(1L, "A-1", "VIP", 121000);
+        seat.markAsSold();
+        when(seatRepository.findById(seatId)).thenReturn(Optional.of(seat));
 
         when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -160,8 +162,7 @@ class BookingServiceTest {
 
         // then
         assertEquals(BookingStatus.CANCELLED, cancelled.getStatus());  // 예매 취소됨
-        assertEquals(SeatStatus.AVAILABLE, seat1.getStatus());          // 좌석 복구됨
-        assertEquals(SeatStatus.AVAILABLE, seat2.getStatus());
+        assertEquals(SeatStatus.AVAILABLE, seat.getStatus());          // 좌석 복구됨
     }
 
     @Test
@@ -172,7 +173,7 @@ class BookingServiceTest {
         Long ownerUserId = 1L;
         Long otherUserId = 2L;
 
-        Booking booking = new Booking(ownerUserId, 1L, "BK20250801001", List.of(101L), 121000);
+        Booking booking = new Booking(ownerUserId, 1L, "BK20250801001", 101L, 121000);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         // when & then - 다른 사람이 취소 시도
@@ -180,6 +181,6 @@ class BookingServiceTest {
                 () -> bookingService.cancelBooking(bookingId, otherUserId));
 
         verify(bookingRepository, never()).save(any());
-        verify(seatRepository, never()).findAllByIds(anyList());
+        verify(seatRepository, never()).findById(anyLong());
     }
 }
