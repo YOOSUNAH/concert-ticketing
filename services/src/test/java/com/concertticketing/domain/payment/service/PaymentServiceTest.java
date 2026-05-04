@@ -4,6 +4,7 @@ import com.concertticketing.domain.booking.entity.Booking;
 import com.concertticketing.domain.booking.entity.BookingStatus;
 import com.concertticketing.domain.booking.repository.BookingRepository;
 import com.concertticketing.domain.payment.entity.Payment;
+import com.concertticketing.domain.payment.entity.PaymentStatus;
 import com.concertticketing.domain.payment.repository.PaymentRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -86,6 +87,57 @@ class PaymentServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> paymentService.confirmPayment(
                         bookingId, "toss_key", "order_uuid", 100000, 5000, "CARD"));
+
+        verify(paymentRepository, never()).save(any());
+    }
+
+    // === 환불 테스트 ===
+
+    @Test
+    @DisplayName("환불 성공 - PAID → REFUNDED + 환불액 기록")
+    void refund_success() {
+        // given - 실결제 116000 + 포인트 5000 = 121000짜리 결제
+        Long bookingId = 999L;
+        Payment payment = new Payment(bookingId, "toss_key", "order_uuid", 116000, 5000, "CARD");
+        when(paymentRepository.findByBookingId(bookingId)).thenReturn(Optional.of(payment));
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        Payment refunded = paymentService.refund(bookingId);
+
+        // then
+        assertEquals(PaymentStatus.REFUNDED, refunded.getStatus());
+        assertEquals(121000, refunded.getRefundedAmount()); // amount + pointUsed
+        assertNotNull(refunded.getRefundedAt());
+        verify(paymentRepository).save(payment);
+    }
+
+    @Test
+    @DisplayName("환불 실패 - 결제 정보 없음")
+    void refund_paymentNotFound_throwsException() {
+        // given
+        Long bookingId = 999L;
+        when(paymentRepository.findByBookingId(bookingId)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThrows(IllegalStateException.class,
+                () -> paymentService.refund(bookingId));
+
+        verify(paymentRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("환불 실패 - 이미 환불된 결제")
+    void refund_alreadyRefunded_throwsException() {
+        // given - 이미 환불된 결제
+        Long bookingId = 999L;
+        Payment payment = new Payment(bookingId, "toss_key", "order_uuid", 116000, 5000, "CARD");
+        payment.refund(); // 이미 환불됨
+        when(paymentRepository.findByBookingId(bookingId)).thenReturn(Optional.of(payment));
+
+        // when & then
+        assertThrows(IllegalStateException.class,
+                () -> paymentService.refund(bookingId));
 
         verify(paymentRepository, never()).save(any());
     }

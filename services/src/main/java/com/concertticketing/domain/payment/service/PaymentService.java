@@ -51,4 +51,21 @@ public class PaymentService {
 
         return payment;
     }
+
+    /**
+     * 환불 처리
+     * 1. bookingId로 결제 정보 조회
+     * 2. 결제 환불 처리 (PAID → REFUNDED, 환불액 기록)
+     *
+     * 예매 상태(CANCELLED) 변경은 호출 측(BookingService.cancelBooking)에서 처리
+     * TODO: PG사 환불 API 호출 (Toss cancel)
+     * TODO: User.point 환원 (Step 5에서 연결)
+     */
+    public Payment refund(Long bookingId) {
+        Payment payment = paymentRepository.findByBookingId(bookingId)
+                .orElseThrow(() -> new IllegalStateException("결제 정보가 없습니다."));
+
+        payment.refund();
+        return paymentRepository.save(payment);
+    }
 }
