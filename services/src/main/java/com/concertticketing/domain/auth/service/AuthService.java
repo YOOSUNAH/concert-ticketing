@@ -1,5 +1,6 @@
 package com.concertticketing.domain.auth.service;
 
+import com.concertticketing.domain.auth.jwt.JwtTokenProvider;
 import com.concertticketing.domain.user.entity.User;
 import com.concertticketing.domain.user.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -8,14 +9,18 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       JwtTokenProvider jwtTokenProvider) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     /**
-     * 로그인 → 토큰 반환
+     * 로그인 → JWT 발급
      */
     public String login(String email, String password) {
         // 1. 이메일로 유저 조회
@@ -27,7 +32,7 @@ public class AuthService {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
-        // 3. 토큰 생성 (지금은 단순 문자열, 나중에 JWT로 교체)
-        return "token-" + user.getId();
+        // 3. JWT 발급
+        return jwtTokenProvider.createToken(user.getId());
     }
 }
