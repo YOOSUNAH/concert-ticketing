@@ -4,4 +4,5 @@ plugins {
 
 dependencies {
     implementation project(':shared')
+    implementation 'org.springframework.security:spring-security-crypto'
 }

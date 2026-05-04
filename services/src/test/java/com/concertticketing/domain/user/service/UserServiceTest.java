@@ -9,6 +9,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -23,35 +24,42 @@ class UserServiceTest {
     @Mock
     UserRepository userRepository;
 
+    @Mock
+    PasswordEncoder passwordEncoder;
+
     @InjectMocks
     UserService userService;
 
     @Test
-    @DisplayName("회원가입 성공 - 새 이메일이면 저장되고 포인트는 0으로 시작")
+    @DisplayName("회원가입 성공 - 비밀번호는 해시되어 저장 + 포인트 0으로 시작")
     void signUp_success() {
-        // given - 이메일 중복 아님
+        // given
         when(userRepository.existsByEmail("test@test.com")).thenReturn(false);
+        when(passwordEncoder.encode("1234")).thenReturn("hashed-1234");
 
-        // when - 회원가입 실행
+        // when
         userService.signUp("test@test.com", "1234");
 
-        // then - save()가 1번 호출됐는지 + 저장된 User의 포인트가 0인지 확인
+        // then - 저장된 User의 password가 평문이 아닌 해시값
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
-        assertEquals(0, captor.getValue().getPoint());
+        User saved = captor.getValue();
+        assertEquals("test@test.com", saved.getEmail());
+        assertEquals("hashed-1234", saved.getPassword()); // 평문 "1234"가 아니라 인코딩된 값
+        assertEquals(0, saved.getPoint());
     }
 
     @Test
-    @DisplayName("회원가입 실패 - 중복 이메일이면 예외 발생")
+    @DisplayName("회원가입 실패 - 중복 이메일이면 예외 발생, 인코딩도 호출 안 됨")
     void signUp_duplicateEmail_throwsException() {
         // given - 이메일 이미 존재
         when(userRepository.existsByEmail("test@test.com")).thenReturn(true);
 
-        // when & then - 예외가 터져야 한다
+        // when & then
         assertThrows(IllegalArgumentException.class,
                 () -> userService.signUp("test@test.com", "1234"));
 
-        // save()가 호출되지 않았는지 확인 (중복이면 저장하면 안 됨)
+        verify(passwordEncoder, never()).encode(any()); // 중복 체크에서 차단되어 인코딩 도달 안 함
         verify(userRepository, never()).save(any());
     }
 }
