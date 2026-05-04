@@ -5,10 +5,12 @@ import com.concertticketing.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -25,7 +27,7 @@ class UserServiceTest {
     UserService userService;
 
     @Test
-    @DisplayName("회원가입 성공 - 새 이메일이면 저장된다")
+    @DisplayName("회원가입 성공 - 새 이메일이면 저장되고 포인트는 0으로 시작")
     void signUp_success() {
         // given - 이메일 중복 아님
         when(userRepository.existsByEmail("test@test.com")).thenReturn(false);
@@ -33,8 +35,10 @@ class UserServiceTest {
         // when - 회원가입 실행
         userService.signUp("test@test.com", "1234");
 
-        // then - save()가 1번 호출됐는지 확인
-        verify(userRepository).save(any(User.class));
+        // then - save()가 1번 호출됐는지 + 저장된 User의 포인트가 0인지 확인
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertEquals(0, captor.getValue().getPoint());
     }
 
     @Test
