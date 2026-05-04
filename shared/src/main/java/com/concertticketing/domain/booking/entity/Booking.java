@@ -1,6 +1,7 @@
 package com.concertticketing.domain.booking.entity;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class Booking {
 
@@ -8,9 +9,8 @@ public class Booking {
     private Long userId;
     private Long scheduleId;
     private String bookingNumber;
-    private Long seatId;
-    private int amount;
-    private Long paymentId;
+    private List<Long> seatIds;
+    private int totalAmount;
     private BookingStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime cancelledAt;
@@ -19,12 +19,12 @@ public class Booking {
     }
 
     public Booking(Long userId, Long scheduleId, String bookingNumber,
-                   Long seatId, int amount) {
+                   List<Long> seatIds, int totalAmount) {
         this.userId = userId;
         this.scheduleId = scheduleId;
         this.bookingNumber = bookingNumber;
-        this.seatId = seatId;
-        this.amount = amount;
+        this.seatIds = seatIds;
+        this.totalAmount = totalAmount;
         this.status = BookingStatus.PENDING;
         this.createdAt = LocalDateTime.now();
     }
@@ -50,14 +50,6 @@ public class Booking {
         this.cancelledAt = LocalDateTime.now();
     }
 
-    /**
-     * 결제 묶음 식별자 연결
-     * - 같은 클릭으로 생성된 N개 Booking을 하나의 Payment로 묶기 위함
-     */
-    public void linkToPayment(Long paymentId) {
-        this.paymentId = paymentId;
-    }
-
     public Long getId() {
         return id;
     }
@@ -74,16 +66,12 @@ public class Booking {
         return bookingNumber;
     }
 
-    public Long getSeatId() {
-        return seatId;
+    public List<Long> getSeatIds() {
+        return seatIds;
     }
 
-    public int getAmount() {
-        return amount;
-    }
-
-    public Long getPaymentId() {
-        return paymentId;
+    public int getTotalAmount() {
+        return totalAmount;
     }
 
     public BookingStatus getStatus() {

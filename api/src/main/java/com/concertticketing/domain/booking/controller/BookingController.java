@@ -25,7 +25,7 @@ public class BookingController {
     // 예매 생성 - Private
     @PostMapping
     public ResponseEntity<BookingCreateResponse> createBooking(@RequestBody BookingCreateRequest request) {
-        BookingCreateResponse response = new BookingCreateResponse(List.of(999L, 1000L), 242000);
+        BookingCreateResponse response = new BookingCreateResponse(999L, 242000, "홍길동");
         return ResponseEntity.status(201).body(response);
     }
 

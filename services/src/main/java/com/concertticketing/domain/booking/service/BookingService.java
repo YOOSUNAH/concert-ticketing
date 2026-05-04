@@ -14,7 +14,6 @@ import com.concertticketing.domain.seat.repository.SeatRepository;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 
 public class BookingService {
@@ -38,13 +37,13 @@ public class BookingService {
     }
 
     /**
-     * 예매 생성 (1매 = 1Booking)
+     * 예매 생성
      * 1. 좌석이 모두 AVAILABLE인지 확인
      * 2. 1인 최대 예매 수량 초과 확인
      * 3. 좌석 상태를 SOLD로 변경
-     * 4. 좌석마다 Booking 생성 & 저장
+     * 4. 예매 생성 & 저장
      */
-    public List<Booking> createBooking(Long userId, Long scheduleId, List<Long> seatIds) {
+    public Booking createBooking(Long userId, Long scheduleId, List<Long> seatIds) {
         // 1. 좌석 조회 & AVAILABLE 확인
         List<Seat> seats = seatRepository.findAllByIds(seatIds);
 
@@ -65,7 +64,7 @@ public class BookingService {
         Concert concert = concertRepository.findById(schedule.getConcertId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 콘서트입니다."));
 
-        int alreadyBooked = bookingRepository.countActiveByUserIdAndScheduleId(userId, scheduleId);
+        int alreadyBooked = bookingRepository.countSeatsByUserIdAndScheduleId(userId, scheduleId);
         if (alreadyBooked + seatIds.size() > concert.getMaxTicketsPerPerson()) {
             throw new IllegalStateException("1인 최대 예매 수량을 초과했습니다.");
         }
@@ -75,14 +74,12 @@ public class BookingService {
             seat.markAsSold();
         }
 
-        // 4. 좌석마다 Booking 1건 생성
-        List<Booking> bookings = new ArrayList<>();
-        for (Seat seat : seats) {
-            Booking booking = new Booking(userId, scheduleId, generateBookingNumber(),
-                    seat.getId(), seat.getPrice());
-            bookings.add(bookingRepository.save(booking));
-        }
-        return bookings;
+        // 4. 예매 생성
+        int totalAmount = seats.stream().mapToInt(Seat::getPrice).sum();
+        String bookingNumber = generateBookingNumber();
+
+        Booking booking = new Booking(userId, scheduleId, bookingNumber, seatIds, totalAmount);
+        return bookingRepository.save(booking);
     }
 
     /**
@@ -114,10 +111,10 @@ public class BookingService {
     }
 
     /**
-     * 예매 취소 (1매 단위)
+     * 예매 취소 (전체 좌석 일괄 취소)
      * 1. 예매 상태를 CANCELLED로 변경
      * 2. PAID 상태였다면 결제 환불 처리
-     * 3. 좌석 상태를 AVAILABLE로 복구
+     * 3. 좌석 상태를 모두 AVAILABLE로 복구
      */
     public Booking cancelBooking(Long bookingId, Long userId) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -136,10 +133,11 @@ public class BookingService {
             paymentService.refund(bookingId);
         }
 
-        // 3. 좌석 복구
-        Seat seat = seatRepository.findById(booking.getSeatId())
-                .orElseThrow(() -> new IllegalStateException("존재하지 않는 좌석입니다."));
-        seat.markAsAvailable();
+        // 3. 좌석 복구 (N개 일괄)
+        List<Seat> seats = seatRepository.findAllByIds(booking.getSeatIds());
+        for (Seat seat : seats) {
+            seat.markAsAvailable();
+        }
 
         return bookingRepository.save(booking);
     }

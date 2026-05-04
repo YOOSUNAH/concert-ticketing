@@ -34,8 +34,8 @@ public class PaymentService {
             throw new IllegalStateException("결제 대기 상태의 예매만 결제할 수 있습니다.");
         }
 
-        // 2. 결제 금액 검증 (실결제액 + 포인트 = 예매 금액)
-        int expectedAmount = booking.getAmount();
+        // 2. 결제 금액 검증 (실결제액 + 포인트 = 총 금액)
+        int expectedAmount = booking.getTotalAmount();
         if (amount + pointUsed != expectedAmount) {
             throw new IllegalArgumentException("결제 금액이 일치하지 않습니다.");
         }
