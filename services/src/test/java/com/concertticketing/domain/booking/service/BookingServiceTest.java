@@ -220,4 +220,65 @@ class BookingServiceTest {
         verify(seatRepository, never()).findAllByIds(anyList());
         verify(paymentService, never()).refund(anyLong());              // 환불 호출 없음
     }
+
+    // === 예매 실패 처리 테스트 (결제 실패 시 보상) ===
+
+    @Test
+    @DisplayName("예매 실패 처리 성공 - PENDING booking을 CANCELLED로 + 좌석 일괄 복구")
+    void failBooking_success() {
+        // given - PENDING 상태 booking
+        Long bookingId = 999L;
+        List<Long> seatIds = List.of(101L, 102L);
+
+        Booking booking = new Booking(1L, 1L, "BK20250801001", seatIds, 242000);
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        Seat seat1 = new Seat(1L, "A-1", "VIP", 121000);
+        Seat seat2 = new Seat(1L, "A-2", "VIP", 121000);
+        seat1.markAsSold();
+        seat2.markAsSold();
+        when(seatRepository.findAllByIds(seatIds)).thenReturn(List.of(seat1, seat2));
+
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        Booking failed = bookingService.failBooking(bookingId);
+
+        // then
+        assertEquals(BookingStatus.CANCELLED, failed.getStatus());
+        assertEquals(SeatStatus.AVAILABLE, seat1.getStatus());
+        assertEquals(SeatStatus.AVAILABLE, seat2.getStatus());
+        verify(paymentService, never()).refund(anyLong()); // payment 미존재 → 환불 호출 없음
+    }
+
+    @Test
+    @DisplayName("예매 실패 처리 실패 - 이미 PAID 상태인 booking")
+    void failBooking_alreadyPaid_throwsException() {
+        // given - PAID booking
+        Long bookingId = 999L;
+        Booking booking = new Booking(1L, 1L, "BK20250801001", List.of(101L), 121000);
+        booking.markAsPaid();
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        // when & then
+        assertThrows(IllegalStateException.class,
+                () -> bookingService.failBooking(bookingId));
+
+        verify(bookingRepository, never()).save(any());
+        verify(seatRepository, never()).findAllByIds(anyList());
+    }
+
+    @Test
+    @DisplayName("예매 실패 처리 실패 - booking 없음")
+    void failBooking_notFound_throwsException() {
+        // given
+        Long bookingId = 999L;
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.empty());
+
+        // when & then
+        assertThrows(IllegalArgumentException.class,
+                () -> bookingService.failBooking(bookingId));
+
+        verify(bookingRepository, never()).save(any());
+    }
 }

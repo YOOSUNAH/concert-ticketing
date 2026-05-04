@@ -4,6 +4,7 @@ import com.concertticketing.domain.booking.entity.Booking;
 import com.concertticketing.domain.booking.entity.BookingStatus;
 import com.concertticketing.domain.booking.repository.BookingRepository;
 import com.concertticketing.domain.payment.entity.Payment;
+import com.concertticketing.domain.payment.gateway.PaymentGateway;
 import com.concertticketing.domain.payment.repository.PaymentRepository;
 import com.concertticketing.domain.user.entity.User;
 import com.concertticketing.domain.user.repository.UserRepository;
@@ -13,13 +14,16 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
+    private final PaymentGateway paymentGateway;
 
     public PaymentService(PaymentRepository paymentRepository,
                           BookingRepository bookingRepository,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          PaymentGateway paymentGateway) {
         this.paymentRepository = paymentRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
+        this.paymentGateway = paymentGateway;
     }
 
     /**
@@ -27,9 +31,10 @@ public class PaymentService {
      * 1. 예매 조회 & PENDING 상태 확인
      * 2. 결제 금액 검증
      * 3. 포인트 사용
-     * 4. 결제 정보 저장
-     * 5. 예매 상태를 PAID로 변경
-     * 6. 포인트 차감 반영
+     * 4. PG사 결제 요청 (실패 시 PaymentGatewayException → 호출 측에서 BookingService.failBooking)
+     * 5. 결제 정보 저장
+     * 6. 예매 상태를 PAID로 변경
+     * 7. 포인트 차감 반영
      */
     public Payment confirmPayment(Long bookingId, String paymentKey, String orderId,
                                   int amount, int pointUsed, String paymentMethod) {
@@ -55,16 +60,19 @@ public class PaymentService {
             user.usePoint(pointUsed);
         }
 
-        // 4. 결제 정보 저장
+        // 4. PG사 결제 요청 (실패 시 어떤 save도 일어나지 않음)
+        paymentGateway.charge(paymentKey, orderId, amount);
+
+        // 5. 결제 정보 저장
         Payment payment = new Payment(bookingId, paymentKey, orderId,
                 amount, pointUsed, paymentMethod);
         paymentRepository.save(payment);
 
-        // 5. 예매 상태를 PAID로 변경
+        // 6. 예매 상태를 PAID로 변경
         booking.markAsPaid();
         bookingRepository.save(booking);
 
-        // 6. 포인트 차감 반영
+        // 7. 포인트 차감 반영
         if (user != null) {
             userRepository.save(user);
         }

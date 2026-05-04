@@ -111,6 +111,30 @@ public class BookingService {
     }
 
     /**
+     * 예매 실패 처리 (결제 실패 시 호출, 본인 검증 없음)
+     * - PENDING 상태에서만 호출 가능 (PG 호출 직전 단계, payment 미저장)
+     * 1. 예매 상태를 CANCELLED로 변경
+     * 2. 좌석 복구
+     */
+    public Booking failBooking(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매입니다."));
+
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new IllegalStateException("결제 대기 상태의 예매만 실패 처리할 수 있습니다.");
+        }
+
+        booking.cancel();
+
+        List<Seat> seats = seatRepository.findAllByIds(booking.getSeatIds());
+        for (Seat seat : seats) {
+            seat.markAsAvailable();
+        }
+
+        return bookingRepository.save(booking);
+    }
+
+    /**
      * 예매 취소 (전체 좌석 일괄 취소)
      * 1. 예매 상태를 CANCELLED로 변경
      * 2. PAID 상태였다면 결제 환불 처리

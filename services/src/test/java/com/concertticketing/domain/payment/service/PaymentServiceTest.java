@@ -5,6 +5,8 @@ import com.concertticketing.domain.booking.entity.BookingStatus;
 import com.concertticketing.domain.booking.repository.BookingRepository;
 import com.concertticketing.domain.payment.entity.Payment;
 import com.concertticketing.domain.payment.entity.PaymentStatus;
+import com.concertticketing.domain.payment.gateway.PaymentGateway;
+import com.concertticketing.domain.payment.gateway.PaymentGatewayException;
 import com.concertticketing.domain.payment.repository.PaymentRepository;
 import com.concertticketing.domain.user.entity.User;
 import com.concertticketing.domain.user.repository.UserRepository;
@@ -22,7 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -38,6 +43,9 @@ class PaymentServiceTest {
 
     @Mock
     UserRepository userRepository;
+
+    @Mock
+    PaymentGateway paymentGateway;
 
     @InjectMocks
     PaymentService paymentService;
@@ -131,7 +139,31 @@ class PaymentServiceTest {
     }
 
     @Test
-    @DisplayName("결제 실패 - 포인트 잔액 부족")
+    @DisplayName("결제 실패 - PG사 결제 실패 시 어떤 save도 호출되지 않음")
+    void confirmPayment_pgFailure_throwsException() {
+        // given
+        Long bookingId = 999L;
+        Booking booking = new Booking(1L, 1L, "BK20250801001", List.of(101L), 121000);
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        // PG 호출이 실패한다고 가정
+        doThrow(new PaymentGatewayException("PG 결제 실패"))
+                .when(paymentGateway).charge(anyString(), anyString(), anyInt());
+
+        // when & then
+        assertThrows(PaymentGatewayException.class,
+                () -> paymentService.confirmPayment(
+                        bookingId, "toss_key", "order_uuid", 121000, 0, "CARD"));
+
+        // PG 실패 → payment/booking/user 모두 save 안 됨
+        verify(paymentRepository, never()).save(any());
+        verify(bookingRepository, never()).save(any());
+        verify(userRepository, never()).save(any());
+        assertEquals(BookingStatus.PENDING, booking.getStatus()); // booking 상태도 그대로
+    }
+
+    @Test
+    @DisplayName("결제 실패 - 포인트 잔액 부족 (PG 호출 전 단계)")
     void confirmPayment_insufficientPoint_throwsException() {
         // given - user.point = 1000인데 5000 사용 시도
         Long bookingId = 999L;
@@ -148,10 +180,11 @@ class PaymentServiceTest {
                 () -> paymentService.confirmPayment(
                         bookingId, "toss_key", "order_uuid", 237000, 5000, "CARD"));
 
-        // 잔액 부족 → 어떤 save도 호출되지 않음
+        // 잔액 부족 → 어떤 save도 호출되지 않음, PG 호출도 도달 안 함
         verify(paymentRepository, never()).save(any());
         verify(bookingRepository, never()).save(any());
         verify(userRepository, never()).save(any());
+        verify(paymentGateway, never()).charge(anyString(), anyString(), anyInt());
         assertEquals(1000, user.getPoint()); // user 잔액 변경 없음
     }
 
