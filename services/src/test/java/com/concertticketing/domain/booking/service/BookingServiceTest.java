@@ -7,6 +7,7 @@ import com.concertticketing.domain.concert.entity.Concert;
 import com.concertticketing.domain.concert.entity.ConcertStatus;
 import com.concertticketing.domain.concert.repository.ConcertRepository;
 import com.concertticketing.domain.payment.service.PaymentService;
+import com.concertticketing.domain.queue.service.QueueService;
 import com.concertticketing.domain.schedule.entity.Schedule;
 import com.concertticketing.domain.schedule.repository.ScheduleRepository;
 import com.concertticketing.domain.seat.entity.Seat;
@@ -29,6 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -52,8 +55,13 @@ class BookingServiceTest {
     @Mock
     PaymentService paymentService;
 
+    @Mock
+    QueueService queueService;
+
     @InjectMocks
     BookingService bookingService;
+
+    private static final String VALID_TOKEN = "1:1:admitted";
 
     // === 예매 생성 테스트 ===
 
@@ -81,14 +89,35 @@ class BookingServiceTest {
         when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        Booking booking = bookingService.createBooking(userId, scheduleId, seatIds);
+        Booking booking = bookingService.createBooking(userId, scheduleId, seatIds, VALID_TOKEN);
 
         // then
         assertEquals(242000, booking.getTotalAmount());          // 121000 × 2
         assertEquals(BookingStatus.PENDING, booking.getStatus()); // 초기 상태는 PENDING
         assertEquals(SeatStatus.SOLD, seat1.getStatus());         // 좌석이 SOLD로 변경됨
         assertEquals(SeatStatus.SOLD, seat2.getStatus());
+        verify(queueService, times(1)).validateAdmissionToken(userId, scheduleId, VALID_TOKEN);
         verify(bookingRepository).save(any(Booking.class));
+    }
+
+    @Test
+    @DisplayName("예매 실패 - admissionToken 검증 실패 (대기열 미통과)")
+    void createBooking_invalidAdmissionToken_throwsException() {
+        // given - QueueService가 검증 실패로 예외를 던짐
+        Long userId = 1L;
+        Long scheduleId = 1L;
+        List<Long> seatIds = List.of(101L);
+
+        doThrow(new IllegalArgumentException("대기열 입장 권한이 만료되었거나 없습니다."))
+                .when(queueService).validateAdmissionToken(anyLong(), anyLong(), anyString());
+
+        // when & then
+        assertThrows(IllegalArgumentException.class,
+                () -> bookingService.createBooking(userId, scheduleId, seatIds, "invalid-token"));
+
+        // 검증 실패 시 좌석 조회/저장 등 후속 단계는 도달 안 함
+        verify(seatRepository, never()).findAllByIds(anyList());
+        verify(bookingRepository, never()).save(any());
     }
 
     @Test
@@ -105,7 +134,7 @@ class BookingServiceTest {
 
         // when & then
         assertThrows(IllegalStateException.class,
-                () -> bookingService.createBooking(userId, scheduleId, seatIds));
+                () -> bookingService.createBooking(userId, scheduleId, seatIds, VALID_TOKEN));
 
         verify(bookingRepository, never()).save(any());
     }
@@ -135,7 +164,7 @@ class BookingServiceTest {
 
         // when & then
         assertThrows(IllegalStateException.class,
-                () -> bookingService.createBooking(userId, scheduleId, seatIds));
+                () -> bookingService.createBooking(userId, scheduleId, seatIds, VALID_TOKEN));
 
         verify(bookingRepository, never()).save(any());
     }

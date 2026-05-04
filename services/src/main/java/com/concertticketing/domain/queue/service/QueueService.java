@@ -69,6 +69,24 @@ public class QueueService {
     }
 
     /**
+     * admissionToken 검증
+     * - 형식 일치 + 서버 측 ACTIVE 상태 동시 확인
+     * - 클라이언트가 보낸 토큰 문자열만 믿지 않고, queueRepository로 실제 상태도 검증
+     */
+    public void validateAdmissionToken(Long userId, Long scheduleId, String admissionToken) {
+        if (admissionToken == null || admissionToken.isBlank()) {
+            throw new IllegalArgumentException("admissionToken이 없습니다.");
+        }
+        String expected = scheduleId + ":" + userId + ":admitted";
+        if (!expected.equals(admissionToken)) {
+            throw new IllegalArgumentException("유효하지 않은 admissionToken입니다.");
+        }
+        if (!queueRepository.isActive(scheduleId, userId)) {
+            throw new IllegalArgumentException("대기열 입장 권한이 만료되었거나 없습니다.");
+        }
+    }
+
+    /**
      * (3) 스케줄러: WAITING → ACTIVE 전환 (3초마다 실행)
      * 1. 만료된 ACTIVE 정리
      * 2. 빈자리 계산

@@ -6,6 +6,7 @@ import com.concertticketing.domain.booking.repository.BookingRepository;
 import com.concertticketing.domain.concert.entity.Concert;
 import com.concertticketing.domain.concert.repository.ConcertRepository;
 import com.concertticketing.domain.payment.service.PaymentService;
+import com.concertticketing.domain.queue.service.QueueService;
 import com.concertticketing.domain.schedule.entity.Schedule;
 import com.concertticketing.domain.schedule.repository.ScheduleRepository;
 import com.concertticketing.domain.seat.entity.Seat;
@@ -23,27 +24,34 @@ public class BookingService {
     private final ConcertRepository concertRepository;
     private final ScheduleRepository scheduleRepository;
     private final PaymentService paymentService;
+    private final QueueService queueService;
 
     public BookingService(BookingRepository bookingRepository,
                           SeatRepository seatRepository,
                           ConcertRepository concertRepository,
                           ScheduleRepository scheduleRepository,
-                          PaymentService paymentService) {
+                          PaymentService paymentService,
+                          QueueService queueService) {
         this.bookingRepository = bookingRepository;
         this.seatRepository = seatRepository;
         this.concertRepository = concertRepository;
         this.scheduleRepository = scheduleRepository;
         this.paymentService = paymentService;
+        this.queueService = queueService;
     }
 
     /**
      * 예매 생성
+     * 0. 대기열 통과 검증 (admissionToken)
      * 1. 좌석이 모두 AVAILABLE인지 확인
      * 2. 1인 최대 예매 수량 초과 확인
      * 3. 좌석 상태를 SOLD로 변경
      * 4. 예매 생성 & 저장
      */
-    public Booking createBooking(Long userId, Long scheduleId, List<Long> seatIds) {
+    public Booking createBooking(Long userId, Long scheduleId, List<Long> seatIds, String admissionToken) {
+        // 0. 대기열 통과 검증 (이전 단계의 흔적 확인)
+        queueService.validateAdmissionToken(userId, scheduleId, admissionToken);
+
         // 1. 좌석 조회 & AVAILABLE 확인
         List<Seat> seats = seatRepository.findAllByIds(seatIds);
 
