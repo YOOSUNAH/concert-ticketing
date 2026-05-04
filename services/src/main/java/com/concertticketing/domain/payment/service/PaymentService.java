@@ -5,24 +5,31 @@ import com.concertticketing.domain.booking.entity.BookingStatus;
 import com.concertticketing.domain.booking.repository.BookingRepository;
 import com.concertticketing.domain.payment.entity.Payment;
 import com.concertticketing.domain.payment.repository.PaymentRepository;
+import com.concertticketing.domain.user.entity.User;
+import com.concertticketing.domain.user.repository.UserRepository;
 
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final BookingRepository bookingRepository;
+    private final UserRepository userRepository;
 
     public PaymentService(PaymentRepository paymentRepository,
-                          BookingRepository bookingRepository) {
+                          BookingRepository bookingRepository,
+                          UserRepository userRepository) {
         this.paymentRepository = paymentRepository;
         this.bookingRepository = bookingRepository;
+        this.userRepository = userRepository;
     }
 
     /**
      * 결제 확정
      * 1. 예매 조회 & PENDING 상태 확인
      * 2. 결제 금액 검증
-     * 3. 결제 정보 저장
-     * 4. 예매 상태를 PAID로 변경
+     * 3. 포인트 사용
+     * 4. 결제 정보 저장
+     * 5. 예매 상태를 PAID로 변경
+     * 6. 포인트 차감 반영
      */
     public Payment confirmPayment(Long bookingId, String paymentKey, String orderId,
                                   int amount, int pointUsed, String paymentMethod) {
@@ -40,14 +47,27 @@ public class PaymentService {
             throw new IllegalArgumentException("결제 금액이 일치하지 않습니다.");
         }
 
-        // 3. 결제 정보 저장
+        // 3. 포인트 사용 (사용자 확인, 잔액 확인)
+        User user = null;
+        if (pointUsed > 0) {
+            user = userRepository.findById(booking.getUserId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+            user.usePoint(pointUsed);
+        }
+
+        // 4. 결제 정보 저장
         Payment payment = new Payment(bookingId, paymentKey, orderId,
                 amount, pointUsed, paymentMethod);
         paymentRepository.save(payment);
 
-        // 4. 예매 상태를 PAID로 변경
+        // 5. 예매 상태를 PAID로 변경
         booking.markAsPaid();
         bookingRepository.save(booking);
+
+        // 6. 포인트 차감 반영
+        if (user != null) {
+            userRepository.save(user);
+        }
 
         return payment;
     }
@@ -56,16 +76,27 @@ public class PaymentService {
      * 환불 처리
      * 1. bookingId로 결제 정보 조회
      * 2. 결제 환불 처리 (PAID → REFUNDED, 환불액 기록)
+     * 3. 포인트 사용했던 결제면 포인트 환원
      *
      * 예매 상태(CANCELLED) 변경은 호출 측(BookingService.cancelBooking)에서 처리
      * TODO: PG사 환불 API 호출 (Toss cancel)
-     * TODO: User.point 환원 (Step 5에서 연결)
      */
     public Payment refund(Long bookingId) {
         Payment payment = paymentRepository.findByBookingId(bookingId)
-                .orElseThrow(() -> new IllegalStateException("결제 정보가 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("결제 정보가 없습니다."));
 
         payment.refund();
+
+        // 포인트 사용했던 결제면 포인트 환원
+        if (payment.getPointUsed() > 0) {
+            Booking booking = bookingRepository.findById(bookingId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매입니다."));
+            User user = userRepository.findById(booking.getUserId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+            user.refundPoint(payment.getPointUsed());
+            userRepository.save(user);
+        }
+
         return paymentRepository.save(payment);
     }
 }
