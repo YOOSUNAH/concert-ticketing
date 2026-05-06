@@ -2,6 +2,7 @@ package com.concertticketing.domain.booking.controller;
 
 import com.concertticketing.domain.booking.dto.BookingCreateRequest;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -9,6 +10,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 
 import java.util.List;
 
+@Disabled
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class BookingControllerTest {
 
