@@ -44,4 +44,16 @@ public class ConcertService {
 
         return new ConcertWithSchedules(concert, schedules);
     }
+
+    /**
+     * scheduleId로 소속 콘서트 조회
+     * - schedule → concertId → concert 두 단계 lookup을 캡슐화
+     */
+    public Concert getConcertByScheduleId(Long scheduleId) {
+        Schedule schedule = scheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스케줄입니다."));
+
+        return concertRepository.findById(schedule.getConcertId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 콘서트입니다."));
+    }
 }
