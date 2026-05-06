@@ -1,6 +1,7 @@
 package com.concertticketing.domain.user.controller;
 
 import com.concertticketing.domain.user.dto.SignUpRequest;
+import com.concertticketing.domain.user.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,9 +12,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/users")
 public class UserController {
 
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
     // 회원가입 - Public
     @PostMapping
     public ResponseEntity<Void> signUp(@RequestBody SignUpRequest request) {
+        userService.signUp(request.getEmail(), request.getPassword(), request.getName());
         return ResponseEntity.status(201).build();
     }
 }
