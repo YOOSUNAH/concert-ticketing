@@ -24,7 +24,7 @@ class UserControllerTest {
 
     @Test
     void 회원가입_성공() {
-        SignUpRequest request = new SignUpRequest("test@example.com", "password123");
+        SignUpRequest request = new SignUpRequest("test@example.com", "password123", "홍길동");
 
         webTestClient.post().uri("/users")
                 .bodyValue(request)

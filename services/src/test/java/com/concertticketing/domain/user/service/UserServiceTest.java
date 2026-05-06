@@ -38,7 +38,7 @@ class UserServiceTest {
         when(passwordEncoder.encode("1234")).thenReturn("hashed-1234");
 
         // when
-        userService.signUp("test@test.com", "1234");
+        userService.signUp("test@test.com", "1234", "홍길동");
 
         // then - 저장된 User의 password가 평문이 아닌 해시값
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
@@ -46,6 +46,7 @@ class UserServiceTest {
         User saved = captor.getValue();
         assertEquals("test@test.com", saved.getEmail());
         assertEquals("hashed-1234", saved.getPassword()); // 평문 "1234"가 아니라 인코딩된 값
+        assertEquals("홍길동", saved.getName());
         assertEquals(0, saved.getPoint());
     }
 
@@ -57,7 +58,7 @@ class UserServiceTest {
 
         // when & then
         assertThrows(IllegalArgumentException.class,
-                () -> userService.signUp("test@test.com", "1234"));
+                () -> userService.signUp("test@test.com", "1234", "홍길동"));
 
         verify(passwordEncoder, never()).encode(any()); // 중복 체크에서 차단되어 인코딩 도달 안 함
         verify(userRepository, never()).save(any());

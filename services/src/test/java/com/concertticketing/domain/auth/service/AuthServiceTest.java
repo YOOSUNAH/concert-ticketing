@@ -39,7 +39,7 @@ class AuthServiceTest {
     @DisplayName("로그인 성공 - JWT 발급되어 반환됨")
     void login_success() {
         // given
-        User user = new User("test@test.com", "hashed-1234");
+        User user = new User("test@test.com", "hashed-1234", "홍길동");
         when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("1234", "hashed-1234")).thenReturn(true);
         when(jwtTokenProvider.createToken(any())).thenReturn("jwt-token-string");
@@ -69,7 +69,7 @@ class AuthServiceTest {
     @DisplayName("로그인 실패 - 비밀번호 불일치")
     void login_wrongPassword_throwsException() {
         // given
-        User user = new User("test@test.com", "hashed-1234");
+        User user = new User("test@test.com", "hashed-1234", "홍길동");
         when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrong", "hashed-1234")).thenReturn(false);
 

@@ -18,7 +18,7 @@ public class UserService {
      * 회원가입
      * - 비밀번호는 BCrypt 등으로 해시되어 저장
      */
-    public void signUp(String email, String password) {
+    public void signUp(String email, String password, String name) {
         // 1. 중복 이메일 체크
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
@@ -26,7 +26,7 @@ public class UserService {
 
         // 2. 비밀번호 해싱 후 유저 생성
         String hashed = passwordEncoder.encode(password);
-        User user = new User(email, hashed);
+        User user = new User(email, hashed, name);
         userRepository.save(user);
     }
 }

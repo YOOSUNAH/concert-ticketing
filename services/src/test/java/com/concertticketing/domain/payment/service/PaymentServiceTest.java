@@ -61,7 +61,7 @@ class PaymentServiceTest {
         Booking booking = new Booking(userId, 1L, "BK20250801001", List.of(101L, 102L), 242000);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
-        User user = new User("test@test.com", "1234");
+        User user = new User("test@test.com", "1234", "홍길동");
         user.refundPoint(10000); // 시작 잔액 10000으로 셋업
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -171,7 +171,7 @@ class PaymentServiceTest {
         Booking booking = new Booking(userId, 1L, "BK20250801001", List.of(101L, 102L), 242000);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
-        User user = new User("test@test.com", "1234");
+        User user = new User("test@test.com", "1234", "홍길동");
         user.refundPoint(1000); // 잔액 1000
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
@@ -202,7 +202,7 @@ class PaymentServiceTest {
         Booking booking = new Booking(userId, 1L, "BK20250801001", List.of(101L, 102L), 242000);
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
-        User user = new User("test@test.com", "1234");
+        User user = new User("test@test.com", "1234", "홍길동");
         user.refundPoint(3000); // 환불 전 잔액 3000 (이전에 일부 적립됐다고 가정)
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 

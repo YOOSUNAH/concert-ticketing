@@ -5,14 +5,16 @@ public class User {
     private Long id;
     private String email;
     private String password;
+    private String name;
     private int point;
 
     protected User() {
     }
 
-    public User(String email, String password) {
+    public User(String email, String password, String name) {
         this.email = email;
         this.password = password;
+        this.name = name;
     }
 
     /**
@@ -51,6 +53,10 @@ public class User {
 
     public String getPassword() {
         return password;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public int getPoint() {
