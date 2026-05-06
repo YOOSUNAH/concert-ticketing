@@ -3,6 +3,10 @@ package com.concertticketing.domain.concert.controller;
 import com.concertticketing.domain.concert.dto.ConcertDetailResponse;
 import com.concertticketing.domain.concert.dto.ConcertListResponse;
 import com.concertticketing.domain.concert.dto.ConcertStatus;
+import com.concertticketing.domain.concert.dto.ConcertWithSchedules;
+import com.concertticketing.domain.concert.entity.Concert;
+import com.concertticketing.domain.concert.service.ConcertService;
+import com.concertticketing.domain.schedule.entity.Schedule;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,35 +20,71 @@ import java.util.List;
 @RequestMapping("/concerts")
 public class ConcertController {
 
+    private final ConcertService concertService;
+
+    public ConcertController(ConcertService concertService) {
+        this.concertService = concertService;
+    }
+
     // 콘서트 목록 조회 - Public
     @GetMapping
     public ResponseEntity<ConcertListResponse> getConcerts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        ConcertListResponse.ConcertItem item = new ConcertListResponse.ConcertItem(
-                1L, "10cm 콘서트", "10cm", "https://example.com/thumbnail.jpg",
-                "올림픽공원", "2025-08-01", "2025-08-02", ConcertStatus.OPEN
+        List<Concert> concerts = concertService.getConcerts(page, size);
+        long total = concertService.getTotalCount();
+        int totalPages = (int) Math.ceil((double) total / size);
+        boolean hasNext = page + 1 < totalPages;
+
+        List<ConcertListResponse.ConcertItem> items = concerts.stream()
+                .map(c -> new ConcertListResponse.ConcertItem(
+                        c.getId(),
+                        c.getTitle(),
+                        c.getArtist(),
+                        c.getThumbnailUrl(),
+                        c.getVenue(),
+                        c.getStartDate().toString(),
+                        c.getEndDate().toString(),
+                        ConcertStatus.valueOf(c.getStatus().name())
+                ))
+                .toList();
+
+        return ResponseEntity.ok(
+                new ConcertListResponse(items, page, size, total, totalPages, hasNext)
         );
-
-        ConcertListResponse response = new ConcertListResponse(List.of(item), page, size, 50L, 5, true);
-
-        return ResponseEntity.ok(response);
     }
 
     // 콘서트 상세 조회 - Public
     @GetMapping("/{concertId}")
     public ResponseEntity<ConcertDetailResponse> getConcert(@PathVariable Long concertId) {
-        ConcertDetailResponse.ScheduleItem schedule = new ConcertDetailResponse.ScheduleItem(
-                1L, "2025-08-01", "19:00", 500, 120
-        );
+        ConcertWithSchedules detail = concertService.getConcertDetail(concertId);
+        Concert concert = detail.getConcert();
 
-        ConcertDetailResponse response = new ConcertDetailResponse(
-                concertId, "10cm 콘서트", "10cm", "공연 설명",
-                "올림픽공원", "https://example.com/poster.jpg",
-                List.of(schedule), 2, ConcertStatus.OPEN
-        );
+        List<ConcertDetailResponse.ScheduleItem> schedules = detail.getSchedules().stream()
+                .map(this::toScheduleItem)
+                .toList();
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(new ConcertDetailResponse(
+                concert.getId(),
+                concert.getTitle(),
+                concert.getArtist(),
+                concert.getDescription(),
+                concert.getVenue(),
+                concert.getPosterUrl(),
+                schedules,
+                concert.getMaxTicketsPerPerson(),
+                ConcertStatus.valueOf(concert.getStatus().name())
+        ));
+    }
+
+    private ConcertDetailResponse.ScheduleItem toScheduleItem(Schedule s) {
+        return new ConcertDetailResponse.ScheduleItem(
+                s.getId(),
+                s.getDate().toString(),
+                s.getTime().toString(),
+                s.getTotalSeats(),
+                s.getRemainingSeats()
+        );
     }
 }
