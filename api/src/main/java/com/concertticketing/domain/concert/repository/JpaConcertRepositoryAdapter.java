@@ -33,6 +33,11 @@ public class JpaConcertRepositoryAdapter implements ConcertRepository {
     }
 
     @Override
+    public List<Concert> findAllByIds(List<Long> concertIds) {
+        return delegate.findAllById(concertIds);
+    }
+
+    @Override
     public long count() {
         return delegate.count();
     }
