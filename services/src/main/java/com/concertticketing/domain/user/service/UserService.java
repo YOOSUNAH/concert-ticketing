@@ -29,4 +29,9 @@ public class UserService {
         User user = new User(email, hashed, name);
         userRepository.save(user);
     }
+
+    public User getUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+    }
 }
