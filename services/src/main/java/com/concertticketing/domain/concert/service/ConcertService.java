@@ -62,6 +62,11 @@ public class ConcertService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스케줄입니다."));
     }
 
+    public Concert getConcert(Long concertId) {
+        return concertRepository.findById(concertId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 콘서트입니다."));
+    }
+
     public List<Schedule> getSchedulesByIds(List<Long> scheduleIds) {
         return scheduleRepository.findAllByIds(scheduleIds);
     }

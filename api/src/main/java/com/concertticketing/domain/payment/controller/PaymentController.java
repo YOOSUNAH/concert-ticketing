@@ -69,7 +69,7 @@ public class PaymentController {
     private PaymentConfirmResponse toSuccessResponse(Payment payment, Long userId) {
         Booking booking = bookingService.getBookingDetail(payment.getBookingId(), userId);
         Schedule schedule = concertService.getSchedule(booking.getScheduleId());
-        Concert concert = concertService.getConcertByScheduleId(booking.getScheduleId());
+        Concert concert = concertService.getConcert(schedule.getConcertId());
         List<String> seatNumbers = seatService.getSeatsByIds(booking.getSeatIds()).stream()
                 .map(Seat::getSeatNumber)
                 .toList();

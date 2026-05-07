@@ -120,7 +120,7 @@ public class BookingController {
     ) {
         Booking booking = bookingService.getBookingDetail(bookingId, userId);
         Schedule schedule = concertService.getSchedule(booking.getScheduleId());
-        Concert concert = concertService.getConcertByScheduleId(booking.getScheduleId());
+        Concert concert = concertService.getConcert(schedule.getConcertId());
         List<String> seatNumbers = seatService.getSeatsByIds(booking.getSeatIds()).stream()
                 .map(Seat::getSeatNumber)
                 .toList();
