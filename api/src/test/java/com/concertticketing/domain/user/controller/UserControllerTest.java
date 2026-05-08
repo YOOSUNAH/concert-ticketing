@@ -1,28 +1,10 @@
 package com.concertticketing.domain.user.controller;
 
 import com.concertticketing.domain.user.dto.SignUpRequest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
+import com.concertticketing.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.web.reactive.server.WebTestClient;
 
-@Disabled
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class UserControllerTest {
-
-    @LocalServerPort
-    private int port;
-
-    private WebTestClient webTestClient;
-
-    @BeforeEach
-    void setUp() {
-        webTestClient = WebTestClient.bindToServer()
-                .baseUrl("http://localhost:" + port)
-                .build();
-    }
+class UserControllerTest extends IntegrationTestBase {
 
     @Test
     void 회원가입_성공() {
@@ -32,5 +14,20 @@ class UserControllerTest {
                 .bodyValue(request)
                 .exchange()
                 .expectStatus().isCreated();
+    }
+
+    @Test
+    void 회원가입_실패_중복_이메일() {
+        SignUpRequest request = new SignUpRequest("dup@example.com", "password123", "홍길동");
+
+        webTestClient.post().uri("/users")
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isCreated();
+
+        webTestClient.post().uri("/users")
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
     }
 }

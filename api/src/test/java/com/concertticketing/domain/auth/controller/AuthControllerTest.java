@@ -1,37 +1,40 @@
 package com.concertticketing.domain.auth.controller;
 
 import com.concertticketing.domain.auth.dto.LoginRequest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
+import com.concertticketing.domain.user.dto.SignUpRequest;
+import com.concertticketing.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.http.HttpHeaders;
 
-@Disabled
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class AuthControllerTest {
+import static org.assertj.core.api.Assertions.assertThat;
 
-    @LocalServerPort
-    private int port;
+class AuthControllerTest extends IntegrationTestBase {
 
-    private WebTestClient webTestClient;
+    @Test
+    void 로그인_성공_JWT_헤더_반환() {
+        webTestClient.post().uri("/users")
+                .bodyValue(new SignUpRequest("login@test.com", "pw1234", "홍길동"))
+                .exchange()
+                .expectStatus().isCreated();
 
-    @BeforeEach
-    void setUp() {
-        webTestClient = WebTestClient.bindToServer()
-                .baseUrl("http://localhost:" + port)
-                .build();
+        webTestClient.post().uri("/auth/login")
+                .bodyValue(new LoginRequest("login@test.com", "pw1234"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().value(HttpHeaders.AUTHORIZATION, value ->
+                        assertThat(value).startsWith("Bearer "));
     }
 
     @Test
-    void 로그인_성공() {
-        LoginRequest request = new LoginRequest("test@example.com", "password123");
+    void 로그인_실패_잘못된_비밀번호_400() {
+        webTestClient.post().uri("/users")
+                .bodyValue(new SignUpRequest("wrong@test.com", "pw1234", "홍길동"))
+                .exchange()
+                .expectStatus().isCreated();
 
         webTestClient.post().uri("/auth/login")
-                .bodyValue(request)
+                .bodyValue(new LoginRequest("wrong@test.com", "WRONG"))
                 .exchange()
-                .expectStatus().isOk()
-                .expectHeader().valueMatches("Authorization", "Bearer .*");
+                .expectStatus().isBadRequest();
     }
 }
