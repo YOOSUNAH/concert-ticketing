@@ -5,6 +5,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
@@ -15,6 +17,8 @@ import java.util.List;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private static final String BEARER_PREFIX = "Bearer ";
 
@@ -59,7 +63,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private boolean isPublic(HttpServletRequest request) {
         String method = request.getMethod();
         String path = request.getRequestURI();
-        return PUBLIC_ENDPOINTS.stream().anyMatch(e -> e.matches(method, path));
+        boolean result = PUBLIC_ENDPOINTS.stream().anyMatch(e -> e.matches(method, path));
+        log.debug("[JWT Filter] method={}, path={}, isPublic={}", method, path, result);
+        return result;
     }
 
     private String extractToken(HttpServletRequest request) {
