@@ -46,21 +46,11 @@ public class QueueController {
             @AuthUserId Long userId,
             @RequestParam String queueToken
     ) {
-        Long scheduleId = parseScheduleId(queueToken);
-        QueueStatusResult result = queueService.getQueueStatus(userId, scheduleId);
+        QueueStatusResult result = queueService.getQueueStatus(userId, queueToken);
         return ResponseEntity.ok(new QueueStatusResponse(
                 Math.toIntExact(result.getRank()),
                 QueueStatus.valueOf(result.getStatus()),
                 result.getAdmissionToken()
         ));
-    }
-
-    // queueToken 형식: "scheduleId:userId"
-    private Long parseScheduleId(String queueToken) {
-        try {
-            return Long.parseLong(queueToken.split(":")[0]);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("유효하지 않은 queueToken입니다.");
-        }
     }
 }
