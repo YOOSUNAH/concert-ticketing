@@ -29,4 +29,9 @@ public class JpaScheduleRepositoryAdapter implements ScheduleRepository {
     public Optional<Schedule> findById(Long scheduleId) {
         return delegate.findById(scheduleId);
     }
+
+    @Override
+    public List<Schedule> findAllByIds(List<Long> scheduleIds) {
+        return delegate.findAllById(scheduleIds);
+    }
 }

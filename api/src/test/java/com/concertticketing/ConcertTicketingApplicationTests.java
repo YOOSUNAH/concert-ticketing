@@ -1,15 +1,11 @@
 package com.concertticketing;
 
-import org.junit.jupiter.api.Disabled;
+import com.concertticketing.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@Disabled
-@SpringBootTest
-class ConcertTicketingApplicationTests {
+class ConcertTicketingApplicationTests extends IntegrationTestBase {
 
-	@Test
-	void contextLoads() {
-	}
-
+    @Test
+    void contextLoads() {
+    }
 }

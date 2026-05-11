@@ -24,6 +24,13 @@ public class SeatService {
     }
 
     /**
+     * 좌석 ID 목록으로 좌석 조회 (상태 무관)
+     */
+    public List<Seat> getSeatsByIds(List<Long> seatIds) {
+        return seatRepository.findAllByIds(seatIds);
+    }
+
+    /**
      * 예매 가능한 좌석 조회
      * - 모든 좌석이 존재하고 AVAILABLE 상태일 때만 반환
      * - 존재하지 않거나 SOLD 좌석이 섞여있으면 예외

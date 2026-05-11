@@ -1,40 +1,30 @@
 package com.concertticketing.domain.schedule.controller;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
+import com.concertticketing.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.http.HttpHeaders;
 
-@Disabled
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class ScheduleControllerTest {
+class ScheduleControllerTest extends IntegrationTestBase {
 
-    @LocalServerPort
-    private int port;
-
-    private WebTestClient webTestClient;
-
-    @BeforeEach
-    void setUp() {
-        webTestClient = WebTestClient.bindToServer()
-                .baseUrl("http://localhost:" + port)
-                .build();
+    @Test
+    void 좌석_목록_조회_인증_없으면_401() {
+        webTestClient.get().uri("/schedules/1/seats")
+                .exchange()
+                .expectStatus().isUnauthorized();
     }
 
     @Test
     void 좌석_목록_조회_성공() {
+        String token = signUpAndLogin("schedule@test.com", "pw1234", "홍길동");
+
         webTestClient.get().uri("/schedules/1/seats")
-                .header("Authorization", "Bearer test-token")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.seats").isArray()
-                .jsonPath("$.seats[0].seatId").isEqualTo(101)
-                .jsonPath("$.seats[0].seatNumber").isEqualTo("A-1")
-                .jsonPath("$.seats[0].grade").isEqualTo("VIP")
-                .jsonPath("$.seats[0].price").isEqualTo(121000)
+                .jsonPath("$.seats.length()").isEqualTo(6)
+                .jsonPath("$.seats[0].seatNumber").exists()
                 .jsonPath("$.seats[0].status").isEqualTo("AVAILABLE");
     }
 }

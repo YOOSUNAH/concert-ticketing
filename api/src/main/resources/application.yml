@@ -15,6 +15,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+        default_batch_fetch_size: 100
     open-in-view: false
 
   data:
@@ -25,3 +26,9 @@ spring:
 jwt:
   secret: concert-ticketing-jwt-secret-key-for-development-only-must-be-256-bits
   validity-seconds: 3600
+
+logging:
+  file:
+    name: app.log
+  level:
+    com.concertticketing.auth: DEBUG

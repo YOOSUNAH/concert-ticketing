@@ -107,4 +107,8 @@ public class PaymentService {
 
         return paymentRepository.save(payment);
     }
+
+    public java.util.Optional<Payment> getPaymentByBookingId(Long bookingId) {
+        return paymentRepository.findByBookingId(bookingId);
+    }
 }

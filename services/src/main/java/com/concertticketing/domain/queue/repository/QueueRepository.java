@@ -34,4 +34,10 @@ public interface QueueRepository {
     void refreshHeartbeat(Long scheduleId, Long userId, int ttlSeconds);
 
     boolean isAlive(Long scheduleId, Long userId);
+
+    // === Token 매핑 (UUID → scheduleId:userId) ===
+
+    void saveTokenMapping(String token, Long scheduleId, Long userId, int ttlSeconds);
+
+    String getTokenMapping(String token);
 }

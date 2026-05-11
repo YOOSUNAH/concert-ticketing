@@ -12,4 +12,6 @@ public interface ScheduleRepository {
     List<Schedule> findByConcertId(Long concertId);
 
     Optional<Schedule> findById(Long scheduleId);
+
+    List<Schedule> findAllByIds(List<Long> scheduleIds);
 }

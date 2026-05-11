@@ -13,5 +13,7 @@ public interface ConcertRepository {
 
     Optional<Concert> findById(Long concertId);
 
+    List<Concert> findAllByIds(List<Long> concertIds);
+
     long count();
 }

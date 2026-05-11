@@ -100,6 +100,18 @@ public class RedisQueueRepository implements QueueRepository {
         return Boolean.TRUE.equals(redis.hasKey(heartbeatKey(scheduleId, userId)));
     }
 
+    // === Token 매핑 ===
+
+    @Override
+    public void saveTokenMapping(String token, Long scheduleId, Long userId, int ttlSeconds) {
+        redis.opsForValue().set(tokenKey(token), scheduleId + ":" + userId, Duration.ofSeconds(ttlSeconds));
+    }
+
+    @Override
+    public String getTokenMapping(String token) {
+        return redis.opsForValue().get(tokenKey(token));
+    }
+
     // === Keys ===
 
     private String waitingKey(Long scheduleId) {
@@ -112,5 +124,9 @@ public class RedisQueueRepository implements QueueRepository {
 
     private String heartbeatKey(Long scheduleId, Long userId) {
         return "queue:hb:" + scheduleId + ":" + userId;
+    }
+
+    private String tokenKey(String token) {
+        return "queue:token:" + token;
     }
 }

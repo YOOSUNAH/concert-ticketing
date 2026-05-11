@@ -33,6 +33,7 @@ public class Booking {
     @Column(nullable = false, unique = true)
     private String bookingNumber;
 
+    // N+1 방어: application.yml의 hibernate.default_batch_fetch_size로 IN 묶음 조회
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
             name = "booking_seats",

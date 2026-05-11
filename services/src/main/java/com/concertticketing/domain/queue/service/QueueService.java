@@ -5,13 +5,15 @@ import com.concertticketing.domain.queue.dto.QueueStatusResult;
 import com.concertticketing.domain.queue.repository.QueueRepository;
 
 import java.util.List;
+import java.util.UUID;
 
 public class QueueService {
 
-    private static final int ESTIMATED_WAIT_PER_PERSON_SECONDS = 5; // 1명당 예상 대기 5초
-    private static final int HEARTBEAT_TTL_SECONDS = 30; // 30초간 폴링 없으면 이탈로 간주
-    private static final int MAX_ACTIVE_COUNT = 2000; // 동시에 예매 가능한 최대 인원
-    private static final int ACTIVE_EXPIRE_SECONDS = 600;  // ACTIVE 상태 10분 후 만료 (결제 안 하면 퇴장)"
+    private static final int ESTIMATED_WAIT_PER_PERSON_SECONDS = 5;
+    private static final int HEARTBEAT_TTL_SECONDS = 30;
+    private static final int MAX_ACTIVE_COUNT = 2000;
+    private static final int ACTIVE_EXPIRE_SECONDS = 600;
+    private static final int TOKEN_TTL_SECONDS = 7200; // 2시간
 
     private final QueueRepository queueRepository;
 
@@ -31,15 +33,14 @@ public class QueueService {
         queueRepository.addToWaiting(scheduleId, userId, now);
         queueRepository.refreshHeartbeat(scheduleId, userId, HEARTBEAT_TTL_SECONDS);
 
+        String queueToken = UUID.randomUUID().toString();
+        queueRepository.saveTokenMapping(queueToken, scheduleId, userId, TOKEN_TTL_SECONDS);
+
         Long rank = queueRepository.getWaitingRank(scheduleId, userId);
         long displayRank = (rank != null) ? rank + 1 : 1;
         int waitSeconds = (int) displayRank * ESTIMATED_WAIT_PER_PERSON_SECONDS;
 
-        return new QueueEntryResult(
-                scheduleId + ":" + userId,
-                displayRank,
-                waitSeconds
-        );
+        return new QueueEntryResult(queueToken, displayRank, waitSeconds);
     }
 
     /**
@@ -48,24 +49,21 @@ public class QueueService {
      * - ACTIVE이면 admissionToken 반환
      * - WAITING이면 현재 순번 + 예상 대기시간 반환
      */
-    public QueueStatusResult getQueueStatus(Long userId, Long scheduleId) {
-        // heartbeat 갱신 (살아있다는 신호)
+    public QueueStatusResult getQueueStatus(Long userId, String queueToken) {
+        Long scheduleId = resolveScheduleId(queueToken);
+
         queueRepository.refreshHeartbeat(scheduleId, userId, HEARTBEAT_TTL_SECONDS);
 
-        // ACTIVE인지 확인
         if (queueRepository.isActive(scheduleId, userId)) {
-            String admissionToken = scheduleId + ":" + userId + ":admitted";
-            return new QueueStatusResult(0, "ADMITTED", admissionToken);
+            return new QueueStatusResult(0, "ADMITTED", queueToken);
         }
 
-        // WAITING 순번 조회
         Long rank = queueRepository.getWaitingRank(scheduleId, userId);
         if (rank == null) {
             throw new IllegalArgumentException("대기열에 존재하지 않는 사용자입니다.");
         }
 
-        long displayRank = rank + 1;
-        return new QueueStatusResult(displayRank, "WAITING", null);
+        return new QueueStatusResult(rank + 1, "WAITING", null);
     }
 
     /**
@@ -77,13 +75,21 @@ public class QueueService {
         if (admissionToken == null || admissionToken.isBlank()) {
             throw new IllegalArgumentException("admissionToken이 없습니다.");
         }
-        String expected = scheduleId + ":" + userId + ":admitted";
-        if (!expected.equals(admissionToken)) {
+        Long storedScheduleId = resolveScheduleId(admissionToken);
+        if (!storedScheduleId.equals(scheduleId)) {
             throw new IllegalArgumentException("유효하지 않은 admissionToken입니다.");
         }
         if (!queueRepository.isActive(scheduleId, userId)) {
             throw new IllegalArgumentException("대기열 입장 권한이 만료되었거나 없습니다.");
         }
+    }
+
+    private Long resolveScheduleId(String queueToken) {
+        String mapping = queueRepository.getTokenMapping(queueToken);
+        if (mapping == null) {
+            throw new IllegalArgumentException("유효하지 않은 queueToken입니다.");
+        }
+        return Long.parseLong(mapping.split(":")[0]);
     }
 
     /**
