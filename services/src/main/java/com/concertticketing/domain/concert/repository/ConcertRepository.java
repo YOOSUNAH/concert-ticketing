@@ -7,6 +7,8 @@ import java.util.Optional;
 
 public interface ConcertRepository {
 
+    Concert save(Concert concert);
+
     List<Concert> findAll(int page, int size);
 
     Optional<Concert> findById(Long concertId);

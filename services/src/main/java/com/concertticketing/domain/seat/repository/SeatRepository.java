@@ -7,6 +7,8 @@ import java.util.Optional;
 
 public interface SeatRepository {
 
+    Seat save(Seat seat);
+
     List<Seat> findByScheduleId(Long scheduleId);
 
     Optional<Seat> findById(Long seatId);

@@ -1,19 +1,51 @@
 package com.concertticketing.domain.payment.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "payments")
 public class Payment {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private Long bookingId;
+
+    @Column(nullable = false)
     private String paymentKey;
+
+    @Column(nullable = false, unique = true)
     private String orderId;
+
+    @Column(nullable = false)
     private int amount;
+
+    @Column(nullable = false)
     private int pointUsed;
+
+    @Column(nullable = false)
     private String paymentMethod;
+
+    @Column(nullable = false)
     private LocalDateTime paidAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private PaymentStatus status;
+
     private Integer refundedAmount;
+
     private LocalDateTime refundedAt;
 
     protected Payment() {
