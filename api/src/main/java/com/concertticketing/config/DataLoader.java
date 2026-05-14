@@ -7,6 +7,7 @@ import com.concertticketing.domain.schedule.entity.Schedule;
 import com.concertticketing.domain.schedule.repository.ScheduleRepository;
 import com.concertticketing.domain.seat.entity.Seat;
 import com.concertticketing.domain.seat.repository.SeatRepository;
+import com.concertticketing.domain.soldout.SoldOutService;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +21,8 @@ public class DataLoader {
     @Bean
     public ApplicationRunner seedData(ConcertRepository concertRepository,
                                       ScheduleRepository scheduleRepository,
-                                      SeatRepository seatRepository) {
+                                      SeatRepository seatRepository,
+                                      SoldOutService soldOutService) {
         return args -> {
             // 이미 데이터 있으면 스킵 (재기동 시 중복 방지)
             if (concertRepository.count() > 0) {
@@ -49,6 +51,10 @@ public class DataLoader {
             // 각 스케줄당 좌석 6개 (VIP 2 + R 2 + S 2)
             seedSeats(seatRepository, schedule1.getId());
             seedSeats(seatRepository, schedule2.getId());
+
+            // Redis 잔여 좌석 카운터 초기화 (api ↔ queue-worker 매진 통신 매개)
+            soldOutService.initRemainingSeats(schedule1.getId(), schedule1.getTotalSeats());
+            soldOutService.initRemainingSeats(schedule2.getId(), schedule2.getTotalSeats());
         };
     }
 

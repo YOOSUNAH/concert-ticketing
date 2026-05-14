@@ -132,6 +132,49 @@ public class RedisQueueRepository implements QueueRepository {
         return redis.opsForValue().get(tokenKey(token));
     }
 
+    // === 잔여 좌석 카운터 + 매진/큐종료 플래그 ===
+
+    @Override
+    public void initRemainingSeats(Long scheduleId, int total) {
+        redis.opsForValue().set(remainingSeatsKey(scheduleId), String.valueOf(total));
+    }
+
+    @Override
+    public long decreaseRemainingSeats(Long scheduleId, int count) {
+        Long result = redis.opsForValue().decrement(remainingSeatsKey(scheduleId), count);
+        return result == null ? 0 : result;
+    }
+
+    @Override
+    public void increaseRemainingSeats(Long scheduleId, int count) {
+        redis.opsForValue().increment(remainingSeatsKey(scheduleId), count);
+    }
+
+    @Override
+    public void markSoldOut(Long scheduleId, int ttlSeconds) {
+        redis.opsForValue().set(soldOutKey(scheduleId), "1", Duration.ofSeconds(ttlSeconds));
+    }
+
+    @Override
+    public boolean isSoldOut(Long scheduleId) {
+        return Boolean.TRUE.equals(redis.hasKey(soldOutKey(scheduleId)));
+    }
+
+    @Override
+    public void deleteWaitingQueue(Long scheduleId) {
+        redis.delete(waitingKey(scheduleId));
+    }
+
+    @Override
+    public void markQueueClosed(Long scheduleId, String reason, int ttlSeconds) {
+        redis.opsForValue().set(closedKey(scheduleId), reason, Duration.ofSeconds(ttlSeconds));
+    }
+
+    @Override
+    public String getQueueClosedReason(Long scheduleId) {
+        return redis.opsForValue().get(closedKey(scheduleId));
+    }
+
     // === Keys ===
 
     private String waitingKey(Long scheduleId) {
@@ -148,5 +191,17 @@ public class RedisQueueRepository implements QueueRepository {
 
     private String tokenKey(String token) {
         return "queue:token:" + token;
+    }
+
+    private String remainingSeatsKey(Long scheduleId) {
+        return "schedule:" + scheduleId + ":remaining-seats";
+    }
+
+    private String soldOutKey(Long scheduleId) {
+        return "schedule:" + scheduleId + ":sold_out";
+    }
+
+    private String closedKey(Long scheduleId) {
+        return "queue:" + scheduleId + ":closed";
     }
 }

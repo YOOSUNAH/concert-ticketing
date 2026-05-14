@@ -15,6 +15,7 @@ import com.concertticketing.domain.queue.service.QueueService;
 import com.concertticketing.domain.schedule.repository.ScheduleRepository;
 import com.concertticketing.domain.seat.repository.SeatRepository;
 import com.concertticketing.domain.seat.service.SeatService;
+import com.concertticketing.domain.soldout.SoldOutService;
 import com.concertticketing.domain.user.repository.UserRepository;
 import com.concertticketing.domain.user.service.UserService;
 import com.concertticketing.infra.payment.FakePaymentGateway;
@@ -89,6 +90,11 @@ public class BeanConfig {
     }
 
     @Bean
+    public SoldOutService soldOutService(QueueRepository queueRepository) {
+        return new SoldOutService(queueRepository);
+    }
+
+    @Bean
     public PaymentService paymentService(PaymentRepository paymentRepository,
                                          BookingRepository bookingRepository,
                                          UserRepository userRepository,
@@ -101,7 +107,9 @@ public class BeanConfig {
                                          SeatService seatService,
                                          ConcertService concertService,
                                          PaymentService paymentService,
-                                         QueueService queueService) {
-        return new BookingService(bookingRepository, seatService, concertService, paymentService, queueService);
+                                         QueueService queueService,
+                                         SoldOutService soldOutService) {
+        return new BookingService(bookingRepository, seatService, concertService,
+                paymentService, queueService, soldOutService);
     }
 }

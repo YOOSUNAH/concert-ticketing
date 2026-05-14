@@ -11,6 +11,7 @@ import com.concertticketing.domain.queue.service.QueueService;
 import com.concertticketing.domain.schedule.entity.Schedule;
 import com.concertticketing.domain.seat.entity.Seat;
 import com.concertticketing.domain.seat.service.SeatService;
+import com.concertticketing.domain.soldout.SoldOutService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,6 +53,9 @@ class BookingServiceTest {
 
     @Mock
     QueueService queueService;
+
+    @Mock
+    SoldOutService soldOutService;
 
     @InjectMocks
     BookingService bookingService;
