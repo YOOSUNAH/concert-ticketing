@@ -1,13 +1,13 @@
-package com.concertticketing.domain.queue.controller;
+package com.concertticketing.queue.api.controller;
 
-import com.concertticketing.auth.AuthUserId;
-import com.concertticketing.domain.queue.dto.QueueEnterRequest;
-import com.concertticketing.domain.queue.dto.QueueEnterResponse;
 import com.concertticketing.domain.queue.dto.QueueEntryResult;
-import com.concertticketing.domain.queue.dto.QueueStatus;
-import com.concertticketing.domain.queue.dto.QueueStatusResponse;
 import com.concertticketing.domain.queue.dto.QueueStatusResult;
 import com.concertticketing.domain.queue.service.QueueService;
+import com.concertticketing.queue.api.auth.AuthUserId;
+import com.concertticketing.queue.api.dto.QueueEnterRequest;
+import com.concertticketing.queue.api.dto.QueueEnterResponse;
+import com.concertticketing.queue.api.dto.QueueStatus;
+import com.concertticketing.queue.api.dto.QueueStatusResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;

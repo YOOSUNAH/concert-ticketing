@@ -1,11 +1,14 @@
 package com.concertticketing.domain.queue.repository;
 
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -16,6 +19,23 @@ public class RedisQueueRepository implements QueueRepository {
 
     public RedisQueueRepository(StringRedisTemplate redis) {
         this.redis = redis;
+    }
+
+    @Override
+    public Set<Long> findActiveScheduleIds() {
+        ScanOptions options = ScanOptions.scanOptions().match("queue:waiting:*").count(100).build();
+        Set<Long> ids = new HashSet<>();
+        try (Cursor<String> cursor = redis.scan(options)) {
+            while (cursor.hasNext()) {
+                String key = cursor.next();
+                String idStr = key.substring("queue:waiting:".length());
+                try {
+                    ids.add(Long.parseLong(idStr));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+        return ids;
     }
 
     // === WAITING ===

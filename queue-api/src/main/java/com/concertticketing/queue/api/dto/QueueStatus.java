@@ -1,4 +1,4 @@
-package com.concertticketing.domain.queue.dto;
+package com.concertticketing.queue.api.dto;
 
 public enum QueueStatus {
     WAITING, ADMITTED, EXPIRED

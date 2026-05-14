@@ -1,8 +1,13 @@
 package com.concertticketing.domain.queue.repository;
 
 import java.util.List;
+import java.util.Set;
 
 public interface QueueRepository {
+
+    /** WAITING 키가 존재하는 scheduleId 목록 (queue-worker 스케줄러용) */
+    Set<Long> findActiveScheduleIds();
+
 
     // === WAITING 그룹 (Sorted Set, score = 입장시각) ===
 
