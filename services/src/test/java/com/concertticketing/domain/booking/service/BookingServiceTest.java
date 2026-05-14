@@ -10,6 +10,7 @@ import com.concertticketing.domain.payment.service.PaymentService;
 import com.concertticketing.domain.queue.service.QueueService;
 import com.concertticketing.domain.schedule.entity.Schedule;
 import com.concertticketing.domain.seat.entity.Seat;
+import com.concertticketing.domain.seat.lock.SeatLockService;
 import com.concertticketing.domain.seat.service.SeatService;
 import com.concertticketing.domain.soldout.SoldOutService;
 import org.junit.jupiter.api.DisplayName;
@@ -56,6 +57,9 @@ class BookingServiceTest {
 
     @Mock
     SoldOutService soldOutService;
+
+    @Mock
+    SeatLockService seatLockService;
 
     @InjectMocks
     BookingService bookingService;
