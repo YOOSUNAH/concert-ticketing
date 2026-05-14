@@ -30,8 +30,8 @@ public class QueueService {
     public QueueEntryResult enterQueue(Long userId, Long scheduleId) {
         long now = System.currentTimeMillis();
 
-        queueRepository.addToWaiting(scheduleId, userId, now);
         queueRepository.refreshHeartbeat(scheduleId, userId, HEARTBEAT_TTL_SECONDS);
+        queueRepository.addToWaiting(scheduleId, userId, now);
 
         String queueToken = UUID.randomUUID().toString();
         queueRepository.saveTokenMapping(queueToken, scheduleId, userId, TOKEN_TTL_SECONDS);
