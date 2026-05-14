@@ -24,8 +24,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final List<PublicEndpoint> PUBLIC_ENDPOINTS = List.of(
             new PublicEndpoint(HttpMethod.POST, "/users"),
-            new PublicEndpoint(HttpMethod.POST, "/auth/login"),
-            new PublicEndpoint(HttpMethod.GET, "/concerts")
+            new PublicEndpoint(HttpMethod.POST, "/auth/login")
     );
 
     private final JwtTokenProvider jwtTokenProvider;
