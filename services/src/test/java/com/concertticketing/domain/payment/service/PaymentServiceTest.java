@@ -17,6 +17,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -58,7 +60,8 @@ class PaymentServiceTest {
         // given
         Long bookingId = 999L;
         Long userId = 1L;
-        Booking booking = new Booking(userId, 1L, "BK20250801001", List.of(101L, 102L), 242000);
+        Booking booking = new Booking(userId, 1L, "BK20250801001", List.of(101L, 102L), 242000,
+                "10cm 콘서트", LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), "올림픽공원");
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         User user = new User("test@test.com", "1234", "홍길동");
@@ -89,7 +92,8 @@ class PaymentServiceTest {
     void confirmPayment_zeroPoint_skipsUserLookup() {
         // given
         Long bookingId = 999L;
-        Booking booking = new Booking(1L, 1L, "BK20250801001", List.of(101L), 121000);
+        Booking booking = new Booking(1L, 1L, "BK20250801001", List.of(101L), 121000,
+                "10cm 콘서트", LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), "올림픽공원");
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
         when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -108,7 +112,8 @@ class PaymentServiceTest {
     void confirmPayment_alreadyPaid_throwsException() {
         // given - PAID 상태인 예매
         Long bookingId = 999L;
-        Booking booking = new Booking(1L, 1L, "BK20250801001", List.of(101L), 121000);
+        Booking booking = new Booking(1L, 1L, "BK20250801001", List.of(101L), 121000,
+                "10cm 콘서트", LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), "올림픽공원");
         booking.markAsPaid();
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
@@ -126,7 +131,8 @@ class PaymentServiceTest {
     void confirmPayment_amountMismatch_throwsException() {
         // given - totalAmount는 242000인데
         Long bookingId = 999L;
-        Booking booking = new Booking(1L, 1L, "BK20250801001", List.of(101L, 102L), 242000);
+        Booking booking = new Booking(1L, 1L, "BK20250801001", List.of(101L, 102L), 242000,
+                "10cm 콘서트", LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), "올림픽공원");
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         // when & then - 200000 + 5000 = 205000 ≠ 242000
@@ -143,7 +149,8 @@ class PaymentServiceTest {
     void confirmPayment_pgFailure_throwsException() {
         // given
         Long bookingId = 999L;
-        Booking booking = new Booking(1L, 1L, "BK20250801001", List.of(101L), 121000);
+        Booking booking = new Booking(1L, 1L, "BK20250801001", List.of(101L), 121000,
+                "10cm 콘서트", LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), "올림픽공원");
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         // PG 호출이 실패한다고 가정
@@ -168,7 +175,8 @@ class PaymentServiceTest {
         // given - user.point = 1000인데 5000 사용 시도
         Long bookingId = 999L;
         Long userId = 1L;
-        Booking booking = new Booking(userId, 1L, "BK20250801001", List.of(101L, 102L), 242000);
+        Booking booking = new Booking(userId, 1L, "BK20250801001", List.of(101L, 102L), 242000,
+                "10cm 콘서트", LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), "올림픽공원");
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         User user = new User("test@test.com", "1234", "홍길동");
@@ -199,7 +207,8 @@ class PaymentServiceTest {
         Payment payment = new Payment(bookingId, "toss_key", "order_uuid", 237000, 5000, "CARD");
         when(paymentRepository.findByBookingId(bookingId)).thenReturn(Optional.of(payment));
 
-        Booking booking = new Booking(userId, 1L, "BK20250801001", List.of(101L, 102L), 242000);
+        Booking booking = new Booking(userId, 1L, "BK20250801001", List.of(101L, 102L), 242000,
+                "10cm 콘서트", LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), "올림픽공원");
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         User user = new User("test@test.com", "1234", "홍길동");

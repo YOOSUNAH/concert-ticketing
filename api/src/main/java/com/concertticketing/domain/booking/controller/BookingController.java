@@ -9,11 +9,8 @@ import com.concertticketing.domain.booking.dto.BookingListResponse;
 import com.concertticketing.domain.booking.dto.BookingStatus;
 import com.concertticketing.domain.booking.entity.Booking;
 import com.concertticketing.domain.booking.service.BookingService;
-import com.concertticketing.domain.concert.entity.Concert;
-import com.concertticketing.domain.concert.service.ConcertService;
 import com.concertticketing.domain.payment.entity.Payment;
 import com.concertticketing.domain.payment.service.PaymentService;
-import com.concertticketing.domain.schedule.entity.Schedule;
 import com.concertticketing.domain.seat.entity.Seat;
 import com.concertticketing.domain.seat.service.SeatService;
 import com.concertticketing.domain.user.entity.User;
@@ -40,18 +37,15 @@ public class BookingController {
 
     private final BookingService bookingService;
     private final UserService userService;
-    private final ConcertService concertService;
     private final SeatService seatService;
     private final PaymentService paymentService;
 
     public BookingController(BookingService bookingService,
                              UserService userService,
-                             ConcertService concertService,
                              SeatService seatService,
                              PaymentService paymentService) {
         this.bookingService = bookingService;
         this.userService = userService;
-        this.concertService = concertService;
         this.seatService = seatService;
         this.paymentService = paymentService;
     }
@@ -86,25 +80,14 @@ public class BookingController {
         int totalPages = (int) Math.ceil((double) total / size);
         boolean hasNext = page + 1 < totalPages;
 
-        // 일괄 조회: schedule, concert, seat을 ID 모아서 한 번에
-        List<Long> scheduleIds = bookings.stream()
-                .map(Booking::getScheduleId).distinct().toList();
-        List<Schedule> schedules = concertService.getSchedulesByIds(scheduleIds);
-        Map<Long, Schedule> scheduleById = schedules.stream()
-                .collect(Collectors.toMap(Schedule::getId, s -> s));
-
-        List<Long> concertIds = schedules.stream()
-                .map(Schedule::getConcertId).distinct().toList();
-        Map<Long, Concert> concertById = concertService.getConcertsByIds(concertIds).stream()
-                .collect(Collectors.toMap(Concert::getId, c -> c));
-
+        // 좌석 정보만 일괄 조회 (Concert/Schedule은 Booking 비정규화 필드로 처리)
         List<Long> allSeatIds = bookings.stream()
                 .flatMap(b -> b.getSeatIds().stream()).distinct().toList();
         Map<Long, Seat> seatById = seatService.getSeatsByIds(allSeatIds).stream()
                 .collect(Collectors.toMap(Seat::getId, s -> s));
 
         List<BookingListResponse.BookingItem> items = bookings.stream()
-                .map(b -> mapToItem(b, scheduleById, concertById, seatById))
+                .map(b -> mapToItem(b, seatById))
                 .toList();
 
         return ResponseEntity.ok(
@@ -119,8 +102,6 @@ public class BookingController {
             @PathVariable Long bookingId
     ) {
         Booking booking = bookingService.getBookingDetail(bookingId, userId);
-        Schedule schedule = concertService.getSchedule(booking.getScheduleId());
-        Concert concert = concertService.getConcert(schedule.getConcertId());
         List<String> seatNumbers = seatService.getSeatsByIds(booking.getSeatIds()).stream()
                 .map(Seat::getSeatNumber)
                 .toList();
@@ -134,10 +115,10 @@ public class BookingController {
         return ResponseEntity.ok(new BookingDetailResponse(
                 booking.getId(),
                 booking.getBookingNumber(),
-                concert.getTitle(),
-                concert.getVenue(),
-                schedule.getDate().toString(),
-                schedule.getTime().toString(),
+                booking.getConcertTitle(),
+                booking.getVenueName(),
+                booking.getScheduleDate().toString(),
+                booking.getScheduleTime().toString(),
                 seatNumbers,
                 booking.getTotalAmount(),
                 paidAmount,
@@ -170,12 +151,7 @@ public class BookingController {
         ));
     }
 
-    private BookingListResponse.BookingItem mapToItem(Booking booking,
-                                                      Map<Long, Schedule> scheduleById,
-                                                      Map<Long, Concert> concertById,
-                                                      Map<Long, Seat> seatById) {
-        Schedule schedule = scheduleById.get(booking.getScheduleId());
-        Concert concert = concertById.get(schedule.getConcertId());
+    private BookingListResponse.BookingItem mapToItem(Booking booking, Map<Long, Seat> seatById) {
         List<String> seatNumbers = booking.getSeatIds().stream()
                 .map(seatById::get)
                 .map(Seat::getSeatNumber)
@@ -183,9 +159,9 @@ public class BookingController {
 
         return new BookingListResponse.BookingItem(
                 booking.getId(),
-                concert.getTitle(),
-                schedule.getDate().toString(),
-                schedule.getTime().toString(),
+                booking.getConcertTitle(),
+                booking.getScheduleDate().toString(),
+                booking.getScheduleTime().toString(),
                 seatNumbers,
                 booking.getTotalAmount(),
                 BookingStatus.valueOf(booking.getStatus().name())

@@ -8,6 +8,7 @@ import com.concertticketing.domain.concert.entity.ConcertStatus;
 import com.concertticketing.domain.concert.service.ConcertService;
 import com.concertticketing.domain.payment.service.PaymentService;
 import com.concertticketing.domain.queue.service.QueueService;
+import com.concertticketing.domain.schedule.entity.Schedule;
 import com.concertticketing.domain.seat.entity.Seat;
 import com.concertticketing.domain.seat.service.SeatService;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -74,6 +76,9 @@ class BookingServiceTest {
                 null, null, LocalDate.of(2025, 8, 1), LocalDate.of(2025, 8, 2),
                 4, ConcertStatus.OPEN);
         when(concertService.getConcertByScheduleId(scheduleId)).thenReturn(concert);
+
+        Schedule schedule = new Schedule(1L, LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), 500, 380);
+        when(concertService.getSchedule(scheduleId)).thenReturn(schedule);
 
         when(bookingRepository.countSeatsByUserIdAndScheduleId(userId, scheduleId)).thenReturn(0);
         when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -167,7 +172,8 @@ class BookingServiceTest {
         Long userId = 1L;
         List<Long> seatIds = List.of(101L, 102L);
 
-        Booking booking = new Booking(userId, 1L, "BK20250801001", seatIds, 242000);
+        Booking booking = new Booking(userId, 1L, "BK20250801001", seatIds, 242000,
+                "10cm 콘서트", LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), "올림픽공원");
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
         when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -188,7 +194,8 @@ class BookingServiceTest {
         Long userId = 1L;
         List<Long> seatIds = List.of(101L, 102L);
 
-        Booking booking = new Booking(userId, 1L, "BK20250801001", seatIds, 242000);
+        Booking booking = new Booking(userId, 1L, "BK20250801001", seatIds, 242000,
+                "10cm 콘서트", LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), "올림픽공원");
         booking.markAsPaid(); // PAID 상태로 만듦
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
         when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -210,7 +217,8 @@ class BookingServiceTest {
         Long ownerUserId = 1L;
         Long otherUserId = 2L;
 
-        Booking booking = new Booking(ownerUserId, 1L, "BK20250801001", List.of(101L), 121000);
+        Booking booking = new Booking(ownerUserId, 1L, "BK20250801001", List.of(101L), 121000,
+                "10cm 콘서트", LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), "올림픽공원");
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         // when & then - 다른 사람이 취소 시도
@@ -231,7 +239,8 @@ class BookingServiceTest {
         Long bookingId = 999L;
         List<Long> seatIds = List.of(101L, 102L);
 
-        Booking booking = new Booking(1L, 1L, "BK20250801001", seatIds, 242000);
+        Booking booking = new Booking(1L, 1L, "BK20250801001", seatIds, 242000,
+                "10cm 콘서트", LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), "올림픽공원");
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
         when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -249,7 +258,8 @@ class BookingServiceTest {
     void failBooking_alreadyPaid_throwsException() {
         // given - PAID booking
         Long bookingId = 999L;
-        Booking booking = new Booking(1L, 1L, "BK20250801001", List.of(101L), 121000);
+        Booking booking = new Booking(1L, 1L, "BK20250801001", List.of(101L), 121000,
+                "10cm 콘서트", LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), "올림픽공원");
         booking.markAsPaid();
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
