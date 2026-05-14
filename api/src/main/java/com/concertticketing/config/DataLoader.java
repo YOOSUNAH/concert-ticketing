@@ -4,7 +4,6 @@ import com.concertticketing.domain.concert.entity.Concert;
 import com.concertticketing.domain.concert.entity.ConcertStatus;
 import com.concertticketing.domain.concert.repository.ConcertRepository;
 import com.concertticketing.domain.schedule.entity.Schedule;
-import com.concertticketing.domain.schedule.repository.ScheduleRepository;
 import com.concertticketing.domain.seat.entity.Seat;
 import com.concertticketing.domain.seat.repository.SeatRepository;
 import com.concertticketing.domain.soldout.SoldOutService;
@@ -20,7 +19,6 @@ public class DataLoader {
 
     @Bean
     public ApplicationRunner seedData(ConcertRepository concertRepository,
-                                      ScheduleRepository scheduleRepository,
                                       SeatRepository seatRepository,
                                       SoldOutService soldOutService) {
         return args -> {
@@ -29,8 +27,12 @@ public class DataLoader {
                 return;
             }
 
-            // 콘서트 1개
-            Concert concert = concertRepository.save(new Concert(
+            Long concertId = 1L;
+            Long scheduleId1 = 7L;
+            Long scheduleId2 = 8L;
+
+            Concert concert = new Concert(
+                    concertId,
                     "10cm 콘서트", "10cm",
                     "어쿠스틱 듀오 10cm의 단독 콘서트",
                     "올림픽공원 체조경기장",
@@ -38,23 +40,20 @@ public class DataLoader {
                     "https://example.com/thumb.jpg",
                     LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 2),
                     2, ConcertStatus.OPEN
-            ));
-
-            // 스케줄 2개 (날짜 다름)
-            Schedule schedule1 = scheduleRepository.save(new Schedule(
-                    concert.getId(), LocalDate.of(2026, 8, 1), LocalTime.of(19, 0), 6, 6
-            ));
-            Schedule schedule2 = scheduleRepository.save(new Schedule(
-                    concert.getId(), LocalDate.of(2026, 8, 2), LocalTime.of(19, 0), 6, 6
-            ));
+            );
+            concert.addSchedule(new Schedule(scheduleId1, concertId,
+                    LocalDate.of(2026, 8, 1), LocalTime.of(19, 0), 6, 6));
+            concert.addSchedule(new Schedule(scheduleId2, concertId,
+                    LocalDate.of(2026, 8, 2), LocalTime.of(19, 0), 6, 6));
+            concertRepository.save(concert);
 
             // 각 스케줄당 좌석 6개 (VIP 2 + R 2 + S 2)
-            seedSeats(seatRepository, schedule1.getId());
-            seedSeats(seatRepository, schedule2.getId());
+            seedSeats(seatRepository, scheduleId1);
+            seedSeats(seatRepository, scheduleId2);
 
-            // Redis 잔여 좌석 카운터 초기화 (api ↔ queue-worker 매진 통신 매개)
-            soldOutService.initRemainingSeats(schedule1.getId(), schedule1.getTotalSeats());
-            soldOutService.initRemainingSeats(schedule2.getId(), schedule2.getTotalSeats());
+            // Redis 잔여 좌석 카운터 초기화
+            soldOutService.initRemainingSeats(scheduleId1, 6);
+            soldOutService.initRemainingSeats(scheduleId2, 6);
         };
     }
 

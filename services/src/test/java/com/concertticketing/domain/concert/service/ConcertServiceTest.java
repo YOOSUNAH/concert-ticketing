@@ -3,7 +3,6 @@ package com.concertticketing.domain.concert.service;
 import com.concertticketing.domain.concert.entity.Concert;
 import com.concertticketing.domain.concert.entity.ConcertStatus;
 import com.concertticketing.domain.concert.repository.ConcertRepository;
-import com.concertticketing.domain.schedule.entity.Schedule;
 import com.concertticketing.domain.schedule.repository.ScheduleRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,8 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,16 +30,13 @@ class ConcertServiceTest {
     ConcertService concertService;
 
     @Test
-    @DisplayName("scheduleId로 콘서트 조회 성공")
+    @DisplayName("scheduleId로 콘서트 조회 성공 — 임베디드 매치")
     void getConcertByScheduleId_success() {
-        Long scheduleId = 1L;
-        Long concertId = 10L;
-        Schedule schedule = new Schedule(concertId, LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), 500, 120);
-        Concert concert = new Concert("10cm 콘서트", "10cm", "설명", "올림픽공원",
+        Long scheduleId = 7L;
+        Concert concert = new Concert(1L, "10cm 콘서트", "10cm", "설명", "올림픽공원",
                 null, null, LocalDate.of(2025, 8, 1), LocalDate.of(2025, 8, 2),
                 2, ConcertStatus.OPEN);
-        when(scheduleRepository.findById(scheduleId)).thenReturn(Optional.of(schedule));
-        when(concertRepository.findById(concertId)).thenReturn(Optional.of(concert));
+        when(concertRepository.findFirstBySchedulesIdEquals(scheduleId)).thenReturn(concert);
 
         Concert result = concertService.getConcertByScheduleId(scheduleId);
 
@@ -50,24 +44,11 @@ class ConcertServiceTest {
     }
 
     @Test
-    @DisplayName("scheduleId로 콘서트 조회 실패 - 존재하지 않는 스케줄")
-    void getConcertByScheduleId_scheduleNotFound_throwsException() {
-        when(scheduleRepository.findById(1L)).thenReturn(Optional.empty());
+    @DisplayName("scheduleId로 콘서트 조회 실패 — 매치되는 Concert 없음")
+    void getConcertByScheduleId_notFound_throwsException() {
+        when(concertRepository.findFirstBySchedulesIdEquals(1L)).thenReturn(null);
 
         assertThrows(IllegalArgumentException.class,
                 () -> concertService.getConcertByScheduleId(1L));
-    }
-
-    @Test
-    @DisplayName("scheduleId로 콘서트 조회 실패 - 스케줄은 있지만 concert 없음")
-    void getConcertByScheduleId_concertNotFound_throwsException() {
-        Long scheduleId = 1L;
-        Long concertId = 10L;
-        Schedule schedule = new Schedule(concertId, LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), 500, 120);
-        when(scheduleRepository.findById(scheduleId)).thenReturn(Optional.of(schedule));
-        when(concertRepository.findById(concertId)).thenReturn(Optional.empty());
-
-        assertThrows(IllegalArgumentException.class,
-                () -> concertService.getConcertByScheduleId(scheduleId));
     }
 }

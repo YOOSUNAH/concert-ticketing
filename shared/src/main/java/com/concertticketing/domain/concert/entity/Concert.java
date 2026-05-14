@@ -1,59 +1,39 @@
 package com.concertticketing.domain.concert.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.concertticketing.domain.schedule.entity.Schedule;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
-@Entity
-@Table(name = "concerts")
+@Document(collection = "concerts")
 public class Concert {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private String title;
-
-    @Column(nullable = false)
     private String artist;
-
-    @Column(columnDefinition = "TEXT")
     private String description;
-
-    @Column(nullable = false)
     private String venue;
-
     private String posterUrl;
     private String thumbnailUrl;
-
-    @Column(nullable = false)
     private LocalDate startDate;
-
-    @Column(nullable = false)
     private LocalDate endDate;
-
-    @Column(nullable = false)
     private int maxTicketsPerPerson;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private ConcertStatus status;
+    private List<Schedule> schedules;
 
     protected Concert() {
     }
 
-    public Concert(String title, String artist, String description, String venue,
+    public Concert(Long id, String title, String artist, String description, String venue,
                    String posterUrl, String thumbnailUrl,
                    LocalDate startDate, LocalDate endDate,
                    int maxTicketsPerPerson, ConcertStatus status) {
+        this.id = id;
         this.title = title;
         this.artist = artist;
         this.description = description;
@@ -64,6 +44,14 @@ public class Concert {
         this.endDate = endDate;
         this.maxTicketsPerPerson = maxTicketsPerPerson;
         this.status = status;
+        this.schedules = new ArrayList<>();
+    }
+
+    public void addSchedule(Schedule schedule) {
+        if (this.schedules == null) {
+            this.schedules = new ArrayList<>();
+        }
+        this.schedules.add(schedule);
     }
 
     public Long getId() {
@@ -108,5 +96,9 @@ public class Concert {
 
     public ConcertStatus getStatus() {
         return status;
+    }
+
+    public List<Schedule> getSchedules() {
+        return schedules == null ? List.of() : schedules;
     }
 }

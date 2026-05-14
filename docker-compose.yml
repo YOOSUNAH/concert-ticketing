@@ -20,6 +20,16 @@ services:
     volumes:
       - redis-data:/data
 
+  mongo:
+    image: mongo:7
+    container_name: concert-mongo
+    environment:
+      MONGO_INITDB_DATABASE: concert
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
   api:
     build:
       context: .
@@ -64,3 +74,4 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  mongo-data:

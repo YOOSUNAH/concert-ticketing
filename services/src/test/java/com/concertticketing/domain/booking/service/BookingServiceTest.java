@@ -80,12 +80,12 @@ class BookingServiceTest {
         Seat seat2 = new Seat(scheduleId, "A-2", "VIP", 121000);
         when(seatService.getAvailableSeats(seatIds)).thenReturn(List.of(seat1, seat2));
 
-        Concert concert = new Concert("10cm 콘서트", "10cm", "설명", "올림픽공원",
+        Concert concert = new Concert(1L, "10cm 콘서트", "10cm", "설명", "올림픽공원",
                 null, null, LocalDate.of(2025, 8, 1), LocalDate.of(2025, 8, 2),
                 4, ConcertStatus.OPEN);
         when(concertService.getConcertByScheduleId(scheduleId)).thenReturn(concert);
 
-        Schedule schedule = new Schedule(1L, LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), 500, 380);
+        Schedule schedule = new Schedule(1L, 1L, LocalDate.of(2025, 8, 1), LocalTime.of(19, 0), 500, 380);
         when(concertService.getSchedule(scheduleId)).thenReturn(schedule);
 
         when(bookingRepository.countSeatsByUserIdAndScheduleId(userId, scheduleId)).thenReturn(0);
@@ -155,7 +155,7 @@ class BookingServiceTest {
         when(seatService.getAvailableSeats(seatIds)).thenReturn(List.of(seat1, seat2));
 
         // maxTicketsPerPerson = 2인데, 이미 1매 예매함 → 2매 추가하면 총 3매 → 초과
-        Concert concert = new Concert("10cm 콘서트", "10cm", "설명", "올림픽공원",
+        Concert concert = new Concert(1L, "10cm 콘서트", "10cm", "설명", "올림픽공원",
                 null, null, LocalDate.of(2025, 8, 1), LocalDate.of(2025, 8, 2),
                 2, ConcertStatus.OPEN);
         when(concertService.getConcertByScheduleId(scheduleId)).thenReturn(concert);

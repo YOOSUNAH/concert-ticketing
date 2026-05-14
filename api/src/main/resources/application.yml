@@ -22,6 +22,10 @@ spring:
     redis:
       host: localhost
       port: 6379
+    mongodb:
+      host: localhost
+      port: 27017
+      database: concert
 
 jwt:
   secret: concert-ticketing-jwt-secret-key-for-development-only-must-be-256-bits
