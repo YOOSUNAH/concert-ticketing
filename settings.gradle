@@ -8,4 +8,4 @@ plugins {
 
 rootProject.name = 'concert-ticketing'
 
-include 'api', 'queue-api', 'queue-worker', 'services', 'shared'
+include 'api', 'concert-api', 'queue-api', 'queue-worker', 'services', 'shared'
