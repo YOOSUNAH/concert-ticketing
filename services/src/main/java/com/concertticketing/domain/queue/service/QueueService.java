@@ -1,5 +1,6 @@
 package com.concertticketing.domain.queue.service;
 
+import com.concertticketing.domain.queue.config.QueueProperties;
 import com.concertticketing.domain.queue.dto.QueueEntryResult;
 import com.concertticketing.domain.queue.dto.QueueStatusResult;
 import com.concertticketing.domain.queue.repository.QueueRepository;
@@ -9,16 +10,12 @@ import java.util.UUID;
 
 public class QueueService {
 
-    private static final int ESTIMATED_WAIT_PER_PERSON_SECONDS = 5;
-    private static final int HEARTBEAT_TTL_SECONDS = 30;
-    private static final int MAX_ACTIVE_COUNT = 2000;
-    private static final int ACTIVE_EXPIRE_SECONDS = 600;
-    private static final int TOKEN_TTL_SECONDS = 7200; // 2시간
-
     private final QueueRepository queueRepository;
+    private final QueueProperties properties;
 
-    public QueueService(QueueRepository queueRepository) {
+    public QueueService(QueueRepository queueRepository, QueueProperties properties) {
         this.queueRepository = queueRepository;
+        this.properties = properties;
     }
 
     /**
@@ -30,15 +27,15 @@ public class QueueService {
     public QueueEntryResult enterQueue(Long userId, Long scheduleId) {
         long now = System.currentTimeMillis();
 
-        queueRepository.refreshHeartbeat(scheduleId, userId, HEARTBEAT_TTL_SECONDS);
+        queueRepository.refreshHeartbeat(scheduleId, userId, properties.getHeartbeatTtlSeconds());
         queueRepository.addToWaiting(scheduleId, userId, now);
 
         String queueToken = UUID.randomUUID().toString();
-        queueRepository.saveTokenMapping(queueToken, scheduleId, userId, TOKEN_TTL_SECONDS);
+        queueRepository.saveTokenMapping(queueToken, scheduleId, userId, properties.getTokenTtlSeconds());
 
         Long rank = queueRepository.getWaitingRank(scheduleId, userId);
         long displayRank = (rank != null) ? rank + 1 : 1;
-        int waitSeconds = (int) displayRank * ESTIMATED_WAIT_PER_PERSON_SECONDS;
+        int waitSeconds = (int) (displayRank * properties.waitPerPersonSeconds());
 
         return new QueueEntryResult(queueToken, displayRank, waitSeconds);
     }
@@ -52,7 +49,7 @@ public class QueueService {
     public QueueStatusResult getQueueStatus(Long userId, String queueToken) {
         Long scheduleId = resolveScheduleId(queueToken);
 
-        queueRepository.refreshHeartbeat(scheduleId, userId, HEARTBEAT_TTL_SECONDS);
+        queueRepository.refreshHeartbeat(scheduleId, userId, properties.getHeartbeatTtlSeconds());
 
         if (queueRepository.isActive(scheduleId, userId)) {
             return new QueueStatusResult(0, "ADMITTED", queueToken);
@@ -107,7 +104,7 @@ public class QueueService {
 
         // 2. 빈자리 계산
         long currentActive = queueRepository.getActiveCount(scheduleId);
-        int availableSlots = (int) (MAX_ACTIVE_COUNT - currentActive);
+        int availableSlots = (int) (properties.getMaxActiveCount() - currentActive);
         if (availableSlots <= 0) {
             return;
         }
@@ -128,7 +125,7 @@ public class QueueService {
             }
 
             // 4. ACTIVE로 등록 + WAITING에서 제거
-            long expireAt = now + (ACTIVE_EXPIRE_SECONDS * 1000L);
+            long expireAt = now + (properties.getActiveExpireSeconds() * 1000L);
             queueRepository.addToActive(scheduleId, candidateUserId, expireAt);
             queueRepository.removeFromWaiting(scheduleId, candidateUserId);
             admitted++;
