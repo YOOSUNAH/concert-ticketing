@@ -14,8 +14,53 @@ services:
   redis:
     image: redis:7
     container_name: concert-redis
+    command: redis-server --appendonly yes --appendfsync everysec
     ports:
       - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: concert-api
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/concert
+      SPRING_DATASOURCE_USERNAME: concert
+      SPRING_DATASOURCE_PASSWORD: concert
+      SPRING_DATA_REDIS_HOST: redis
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  queue-api:
+    build:
+      context: .
+      dockerfile: queue-api/Dockerfile
+    container_name: concert-queue-api
+    environment:
+      SPRING_DATA_REDIS_HOST: redis
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  queue-worker:
+    build:
+      context: .
+      dockerfile: queue-worker/Dockerfile
+    container_name: concert-queue-worker
+    environment:
+      SPRING_DATA_REDIS_HOST: redis
+    depends_on:
+      - redis
+    restart: always
 
 volumes:
   postgres-data:
+  redis-data:
