@@ -28,8 +28,8 @@ public class DataLoader {
             }
 
             Long concertId = 1L;
-            Long scheduleId1 = 7L;
-            Long scheduleId2 = 8L;
+            Long scheduleId1 = 1L;
+            Long scheduleId2 = 2L;
 
             Concert concert = new Concert(
                     concertId,

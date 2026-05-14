@@ -3,7 +3,6 @@ package com.concertticketing.domain.schedule.repository;
 import com.concertticketing.domain.concert.entity.Concert;
 import com.concertticketing.domain.concert.repository.ConcertRepository;
 import com.concertticketing.domain.schedule.entity.Schedule;
-import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -14,8 +13,8 @@ import java.util.Set;
 /**
  * Schedule은 Concert 문서에 임베디드되어 별도 컬렉션이 아니다.
  * Concert를 통해 Schedule을 조회/추출하는 래퍼.
+ * MongoRepository에 의존하므로 mongo를 쓰는 모듈에서만 명시적으로 등록.
  */
-@Repository
 public class ScheduleRepository {
 
     private final ConcertRepository concertRepository;
