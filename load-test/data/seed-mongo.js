@@ -17,16 +17,16 @@ db.concerts.insertOne({
     venue: "테스트 공연장",
     posterUrl: "https://example.com/poster.jpg",
     thumbnailUrl: "https://example.com/thumb.jpg",
-    startDate: "2026-06-01",
-    endDate: "2026-06-30",
+    startDate: ISODate("2026-06-01T00:00:00Z"),
+    endDate: ISODate("2026-06-30T00:00:00Z"),
     maxTicketsPerPerson: 4,
     status: "OPEN",
     schedules: [
         {
             _id: NumberLong(1),
             concertId: NumberLong(1),
-            date: "2026-06-15",
-            time: "19:00",
+            date: ISODate("2026-06-15T00:00:00Z"),
+            time: ISODate("1970-01-01T19:00:00Z"),
             totalSeats: 6,
             remainingSeats: 6
         }
