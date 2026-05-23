@@ -30,7 +30,7 @@ class SoldOutServiceTest {
 
         soldOutService.onSeatsTaken(1L, 2);
 
-        verify(queueRepository, times(1)).markSoldOut(eq(1L), anyInt());
+        verify(queueRepository, times(1)).markSoldOut(1L);
     }
 
     @Test
@@ -39,7 +39,7 @@ class SoldOutServiceTest {
 
         soldOutService.onSeatsTaken(1L, 2);
 
-        verify(queueRepository, times(1)).markSoldOut(eq(1L), anyInt());
+        verify(queueRepository, times(1)).markSoldOut(1L);
     }
 
     @Test
@@ -48,7 +48,7 @@ class SoldOutServiceTest {
 
         soldOutService.onSeatsTaken(1L, 2);
 
-        verify(queueRepository, never()).markSoldOut(anyLong(), anyInt());
+        verify(queueRepository, never()).markSoldOut(anyLong());
     }
 
     @Test
@@ -56,6 +56,23 @@ class SoldOutServiceTest {
         soldOutService.onSeatsReleased(1L, 2);
 
         verify(queueRepository, times(1)).increaseRemainingSeats(1L, 2);
-        verify(queueRepository, never()).markSoldOut(anyLong(), anyInt());
+    }
+
+    @Test
+    void 좌석_해제_시_매진_상태이면_sold_out_플래그_제거() {
+        when(queueRepository.isSoldOut(1L)).thenReturn(true);
+
+        soldOutService.onSeatsReleased(1L, 2);
+
+        verify(queueRepository, times(1)).removeSoldOut(1L);
+    }
+
+    @Test
+    void 좌석_해제_시_매진_아니면_sold_out_플래그_제거_안_함() {
+        when(queueRepository.isSoldOut(1L)).thenReturn(false);
+
+        soldOutService.onSeatsReleased(1L, 2);
+
+        verify(queueRepository, never()).removeSoldOut(anyLong());
     }
 }

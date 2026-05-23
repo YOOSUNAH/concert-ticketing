@@ -6,7 +6,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Repository;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -108,28 +107,36 @@ public class RedisQueueRepository implements QueueRepository {
         return removedUserIds;
     }
 
-    // === Heartbeat ===
+    // === Heartbeat (타임스탬프 기반) ===
 
     @Override
-    public void refreshHeartbeat(Long scheduleId, Long userId, int ttlSeconds) {
-        redis.opsForValue().set(heartbeatKey(scheduleId, userId), "1", Duration.ofSeconds(ttlSeconds));
+    public void refreshHeartbeat(Long scheduleId, Long userId) {
+        redis.opsForValue().set(heartbeatKey(scheduleId, userId), String.valueOf(System.currentTimeMillis()));
     }
 
     @Override
-    public boolean isAlive(Long scheduleId, Long userId) {
-        return Boolean.TRUE.equals(redis.hasKey(heartbeatKey(scheduleId, userId)));
+    public boolean isAlive(Long scheduleId, Long userId, int thresholdSeconds) {
+        String lastPing = redis.opsForValue().get(heartbeatKey(scheduleId, userId));
+        if (lastPing == null) return false;
+        long elapsed = System.currentTimeMillis() - Long.parseLong(lastPing);
+        return elapsed < thresholdSeconds * 1000L;
     }
 
     // === Token 매핑 ===
 
     @Override
-    public void saveTokenMapping(String token, Long scheduleId, Long userId, int ttlSeconds) {
-        redis.opsForValue().set(tokenKey(token), scheduleId + ":" + userId, Duration.ofSeconds(ttlSeconds));
+    public void saveTokenMapping(String token, Long scheduleId, Long userId) {
+        redis.opsForValue().set(tokenKey(token), scheduleId + ":" + userId);
     }
 
     @Override
     public String getTokenMapping(String token) {
         return redis.opsForValue().get(tokenKey(token));
+    }
+
+    @Override
+    public void deleteTokenMapping(String token) {
+        redis.delete(tokenKey(token));
     }
 
     // === 잔여 좌석 카운터 + 매진/큐종료 플래그 ===
@@ -151,8 +158,8 @@ public class RedisQueueRepository implements QueueRepository {
     }
 
     @Override
-    public void markSoldOut(Long scheduleId, int ttlSeconds) {
-        redis.opsForValue().set(soldOutKey(scheduleId), "1", Duration.ofSeconds(ttlSeconds));
+    public void markSoldOut(Long scheduleId) {
+        redis.opsForValue().set(soldOutKey(scheduleId), "1");
     }
 
     @Override
@@ -161,13 +168,18 @@ public class RedisQueueRepository implements QueueRepository {
     }
 
     @Override
+    public void removeSoldOut(Long scheduleId) {
+        redis.delete(soldOutKey(scheduleId));
+    }
+
+    @Override
     public void deleteWaitingQueue(Long scheduleId) {
         redis.delete(waitingKey(scheduleId));
     }
 
     @Override
-    public void markQueueClosed(Long scheduleId, String reason, int ttlSeconds) {
-        redis.opsForValue().set(closedKey(scheduleId), reason, Duration.ofSeconds(ttlSeconds));
+    public void markQueueClosed(Long scheduleId, String reason) {
+        redis.opsForValue().set(closedKey(scheduleId), reason);
     }
 
     @Override

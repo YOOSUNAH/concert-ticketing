@@ -80,13 +80,11 @@ public class BeanConfig {
 
     @Bean
     public QueueProperties queueProperties(
-            @Value("${queue.heartbeat-ttl-seconds}") int heartbeatTtlSeconds,
+            @Value("${queue.heartbeat-threshold-seconds}") int heartbeatThresholdSeconds,
             @Value("${queue.max-active-count}") int maxActiveCount,
-            @Value("${queue.active-expire-seconds}") int activeExpireSeconds,
-            @Value("${queue.token-ttl-seconds}") int tokenTtlSeconds
+            @Value("${queue.active-expire-seconds}") int activeExpireSeconds
     ) {
-        return new QueueProperties(heartbeatTtlSeconds, maxActiveCount,
-                activeExpireSeconds, tokenTtlSeconds);
+        return new QueueProperties(heartbeatThresholdSeconds, maxActiveCount, activeExpireSeconds);
     }
 
     @Bean

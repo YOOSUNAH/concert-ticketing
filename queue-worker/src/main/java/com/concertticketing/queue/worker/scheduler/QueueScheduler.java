@@ -39,4 +39,20 @@ public class QueueScheduler {
             queueService.processQueue(scheduleId);
         }
     }
+
+    /**
+     * 고아 키 정리 (1시간마다)
+     * - closed 플래그가 있고 waiting/active 모두 비어있는 scheduleId의 큐 관련 키 정리
+     */
+    @Scheduled(fixedDelay = 3600000)
+    public void cleanupOrphanKeys() {
+        Set<Long> activeSchedules = queueRepository.findActiveScheduleIds();
+        for (Long scheduleId : activeSchedules) {
+            String closedReason = queueRepository.getQueueClosedReason(scheduleId);
+            if (closedReason != null && queueRepository.getActiveCount(scheduleId) == 0) {
+                log.info("Schedule {} 고아 키 정리", scheduleId);
+                queueRepository.deleteWaitingQueue(scheduleId);
+            }
+        }
+    }
 }

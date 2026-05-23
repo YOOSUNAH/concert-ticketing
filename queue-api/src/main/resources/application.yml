@@ -21,10 +21,9 @@ jwt:
   validity-seconds: 3600
 
 queue:
-  heartbeat-ttl-seconds: 30
+  heartbeat-threshold-seconds: 30
   max-active-count: 2000
   active-expire-seconds: 600
-  token-ttl-seconds: 7200
 
 logging:
   level:
