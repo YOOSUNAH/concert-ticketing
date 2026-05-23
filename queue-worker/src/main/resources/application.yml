@@ -12,8 +12,9 @@ spring:
 
   data:
     redis:
-      host: localhost
-      port: 6379
+      sentinel:
+        master: mymaster
+        nodes: localhost:26379
 
 queue:
   heartbeat-threshold-seconds: 30
