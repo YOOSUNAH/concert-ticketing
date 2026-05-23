@@ -30,13 +30,15 @@
   - Concert 문서 (`concerts` 컬렉션)
   - Schedule은 별도 컬렉션이 아니라 Concert 문서 안에 임베디드 (`List<Schedule>`)
 
+- **Redis (매진 상태 조회)**
+  - `schedule:{scheduleId}:sold_out` — 스케줄별 매진 여부 조회 (응답에 soldOut 필드 포함)
+
 - **Caffeine 캐시**
   - `concert-list` — 목록 조회 캐시 (1시간 TTL, max 1000)
-  - `concert` — 상세 조회 캐시 (1시간 TTL, max 1000)
 
 - **엔드포인트** (GET만 존재, POST/PUT/DELETE 없음)
   - `GET /concerts?page=0&size=10` — 목록 조회
-  - `GET /concerts/{concertId}` — 상세 + 스케줄 조회
+  - `GET /concerts/{concertId}` — 상세 + 스케줄 조회 (각 스케줄에 soldOut 포함)
 
 ---
 

@@ -6,6 +6,7 @@ import com.concertticketing.concert.api.dto.ConcertStatus;
 import com.concertticketing.domain.concert.dto.ConcertWithSchedules;
 import com.concertticketing.domain.concert.entity.Concert;
 import com.concertticketing.domain.concert.service.ConcertService;
+import com.concertticketing.domain.queue.repository.QueueRepository;
 import com.concertticketing.domain.schedule.entity.Schedule;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
@@ -22,9 +23,11 @@ import java.util.List;
 public class ConcertController {
 
     private final ConcertService concertService;
+    private final QueueRepository queueRepository;
 
-    public ConcertController(ConcertService concertService) {
+    public ConcertController(ConcertService concertService, QueueRepository queueRepository) {
         this.concertService = concertService;
+        this.queueRepository = queueRepository;
     }
 
     // 콘서트 목록 조회 - Public
@@ -58,14 +61,14 @@ public class ConcertController {
     }
 
     // 콘서트 상세 조회 - Public
+    // soldOut은 실시간 Redis 상태이므로 캐시 밖에서 조회하여 응답에 합성
     @GetMapping("/{concertId}")
-    @Cacheable(value = "concert", key = "#concertId")
     public ResponseEntity<ConcertDetailResponse> getConcert(@PathVariable Long concertId) {
         ConcertWithSchedules detail = concertService.getConcertDetail(concertId);
         Concert concert = detail.getConcert();
 
         List<ConcertDetailResponse.ScheduleItem> schedules = detail.getSchedules().stream()
-                .map(this::toScheduleItem)
+                .map(s -> toScheduleItem(s, queueRepository.isSoldOut(s.getId())))
                 .toList();
 
         return ResponseEntity.ok(new ConcertDetailResponse(
@@ -81,13 +84,14 @@ public class ConcertController {
         ));
     }
 
-    private ConcertDetailResponse.ScheduleItem toScheduleItem(Schedule s) {
+    private ConcertDetailResponse.ScheduleItem toScheduleItem(Schedule s, boolean soldOut) {
         return new ConcertDetailResponse.ScheduleItem(
                 s.getId(),
                 s.getDate().toString(),
                 s.getTime().toString(),
                 s.getTotalSeats(),
-                s.getRemainingSeats()
+                s.getRemainingSeats(),
+                soldOut
         );
     }
 }

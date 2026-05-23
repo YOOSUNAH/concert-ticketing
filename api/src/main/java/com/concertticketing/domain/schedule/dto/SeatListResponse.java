@@ -9,6 +9,7 @@ import java.util.List;
 @AllArgsConstructor
 public class SeatListResponse {
     private List<SeatItem> seats;
+    private boolean soldOut;
 
     @Getter
     @AllArgsConstructor
