@@ -13,8 +13,6 @@ import com.concertticketing.domain.queue.config.QueueProperties;
 import com.concertticketing.domain.queue.repository.QueueRepository;
 import com.concertticketing.domain.queue.service.QueueService;
 import com.concertticketing.domain.schedule.repository.ScheduleRepository;
-import com.concertticketing.domain.seat.lock.SeatLockRepository;
-import com.concertticketing.domain.seat.lock.SeatLockService;
 import com.concertticketing.domain.seat.repository.SeatRepository;
 import com.concertticketing.domain.seat.service.SeatService;
 import com.concertticketing.domain.soldout.SoldOutService;
@@ -102,14 +100,6 @@ public class BeanConfig {
     }
 
     @Bean
-    public SeatLockService seatLockService(
-            SeatLockRepository seatLockRepository,
-            @Value("${queue.active-expire-seconds}") int activeExpireSeconds
-    ) {
-        return new SeatLockService(seatLockRepository, activeExpireSeconds);
-    }
-
-    @Bean
     public PaymentService paymentService(PaymentRepository paymentRepository,
                                          BookingRepository bookingRepository,
                                          UserRepository userRepository,
@@ -123,9 +113,8 @@ public class BeanConfig {
                                          ConcertService concertService,
                                          PaymentService paymentService,
                                          QueueService queueService,
-                                         SoldOutService soldOutService,
-                                         SeatLockService seatLockService) {
+                                         SoldOutService soldOutService) {
         return new BookingService(bookingRepository, seatService, concertService,
-                paymentService, queueService, soldOutService, seatLockService);
+                paymentService, queueService, soldOutService);
     }
 }

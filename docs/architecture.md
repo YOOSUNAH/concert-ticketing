@@ -12,8 +12,7 @@
   - user — 사용자 (email, password, name, point)
   - seat — 좌석 마스터 (scheduleId, seatNumber, grade, price, status)
 
-- **Redis (좌석 락 + 재고)**
-  - `lock:seat:{seatId}` — 좌석 분산 락 (SETNX, TTL)
+- **Redis (재고)**
   - `schedule:{scheduleId}:remaining-seats` — 잔여 좌석 카운터
   - `schedule:{scheduleId}:sold_out` — 매진 플래그 (TTL 24시간)
 
@@ -109,7 +108,6 @@ CDN(Content Delivery Network)을 통해 사용자 가까운 엣지 서버에서 
 
 | 데이터 | 키 패턴 | 특성 |
 |--------|---------|------|
-| 좌석 분산 락 | `lock:seat:{seatId}` | 동시성 제어, 짧은 TTL |
 | 잔여 좌석 수 | `schedule:{scheduleId}:remaining-seats` | 초당 수천 쓰기 |
 | 매진 플래그 | `schedule:{scheduleId}:sold_out` | TTL 24시간 |
 

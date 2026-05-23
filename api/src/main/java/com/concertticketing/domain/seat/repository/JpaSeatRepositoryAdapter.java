@@ -34,4 +34,14 @@ public class JpaSeatRepositoryAdapter implements SeatRepository {
     public List<Seat> findAllByIds(List<Long> seatIds) {
         return delegate.findByIdIn(seatIds);
     }
+
+    @Override
+    public int markAsSoldWhereAvailable(List<Long> seatIds) {
+        return delegate.markAsSoldWhereAvailable(seatIds);
+    }
+
+    @Override
+    public int markAsAvailableWhereSold(List<Long> seatIds) {
+        return delegate.markAsAvailableWhereSold(seatIds);
+    }
 }

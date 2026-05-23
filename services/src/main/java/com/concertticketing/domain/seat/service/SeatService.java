@@ -53,11 +53,13 @@ public class SeatService {
 
     /**
      * 좌석 일괄 SOLD 처리 (예매 확정 시)
+     * - 조건부 UPDATE로 DB 레벨에서 동시성 보장
+     * - 영향 행 수 != 요청 수이면 이미 누군가 선점한 것 → 예외
      */
     public void markAllAsSold(List<Long> seatIds) {
-        List<Seat> seats = seatRepository.findAllByIds(seatIds);
-        for (Seat seat : seats) {
-            seat.markAsSold();
+        int updated = seatRepository.markAsSoldWhereAvailable(seatIds);
+        if (updated != seatIds.size()) {
+            throw new IllegalStateException("이미 판매된 좌석이 포함되어 있습니다.");
         }
     }
 
@@ -65,9 +67,6 @@ public class SeatService {
      * 좌석 일괄 AVAILABLE 복구 (예매 취소/실패 시)
      */
     public void markAllAsAvailable(List<Long> seatIds) {
-        List<Seat> seats = seatRepository.findAllByIds(seatIds);
-        for (Seat seat : seats) {
-            seat.markAsAvailable();
-        }
+        seatRepository.markAsAvailableWhereSold(seatIds);
     }
 }

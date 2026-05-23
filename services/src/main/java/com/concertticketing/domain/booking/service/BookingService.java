@@ -9,7 +9,6 @@ import com.concertticketing.domain.payment.service.PaymentService;
 import com.concertticketing.domain.queue.service.QueueService;
 import com.concertticketing.domain.schedule.entity.Schedule;
 import com.concertticketing.domain.seat.entity.Seat;
-import com.concertticketing.domain.seat.lock.SeatLockService;
 import com.concertticketing.domain.seat.service.SeatService;
 import com.concertticketing.domain.soldout.SoldOutService;
 
@@ -25,22 +24,19 @@ public class BookingService {
     private final PaymentService paymentService;
     private final QueueService queueService;
     private final SoldOutService soldOutService;
-    private final SeatLockService seatLockService;
 
     public BookingService(BookingRepository bookingRepository,
                           SeatService seatService,
                           ConcertService concertService,
                           PaymentService paymentService,
                           QueueService queueService,
-                          SoldOutService soldOutService,
-                          SeatLockService seatLockService) {
+                          SoldOutService soldOutService) {
         this.bookingRepository = bookingRepository;
         this.seatService = seatService;
         this.concertService = concertService;
         this.paymentService = paymentService;
         this.queueService = queueService;
         this.soldOutService = soldOutService;
-        this.seatLockService = seatLockService;
     }
 
     /**
@@ -55,40 +51,28 @@ public class BookingService {
         // 0. 대기열 통과 검증
         queueService.validateAdmissionToken(userId, scheduleId, admissionToken);
 
-        // 0-1. 좌석 일괄 락 획득 (동시성 방어) - 실패 시 즉시 예외
-        seatLockService.acquireAll(seatIds, userId);
+        // 1. 좌석 조회 + AVAILABLE 검증
+        List<Seat> seats = seatService.getAvailableSeats(seatIds);
 
-        boolean shouldReleaseLock = true;
-        try {
-            // 1. 좌석 조회 + AVAILABLE 검증
-            List<Seat> seats = seatService.getAvailableSeats(seatIds);
-
-            // 2. 1인 최대 예매 수량 검증
-            Concert concert = concertService.getConcertByScheduleId(scheduleId);
-            int alreadyBooked = bookingRepository.countSeatsByUserIdAndScheduleId(userId, scheduleId);
-            if (alreadyBooked + seatIds.size() > concert.getMaxTicketsPerPerson()) {
-                throw new IllegalStateException("1인 최대 예매 수량을 초과했습니다.");
-            }
-
-            // 3. 좌석 SOLD 처리 + 잔여 좌석 카운터 감소 (매진 시 sold_out 플래그 발행)
-            seatService.markAllAsSold(seatIds);
-            soldOutService.onSeatsTaken(scheduleId, seatIds.size());
-
-            // 4. 예매 생성 (Concert/Schedule 정보 비정규화로 함께 저장)
-            Schedule schedule = concertService.getSchedule(scheduleId);
-            int totalAmount = seats.stream().mapToInt(Seat::getPrice).sum();
-            Booking booking = new Booking(
-                    userId, scheduleId, generateBookingNumber(), seatIds, totalAmount,
-                    concert.getTitle(), schedule.getDate(), schedule.getTime(), concert.getVenue()
-            );
-            Booking saved = bookingRepository.save(booking);
-            shouldReleaseLock = false; // 성공 시 락 유지 (결제 완료/만료까지 좌석 보호)
-            return saved;
-        } finally {
-            if (shouldReleaseLock) {
-                seatLockService.releaseAll(seatIds);
-            }
+        // 2. 1인 최대 예매 수량 검증
+        Concert concert = concertService.getConcertByScheduleId(scheduleId);
+        int alreadyBooked = bookingRepository.countSeatsByUserIdAndScheduleId(userId, scheduleId);
+        if (alreadyBooked + seatIds.size() > concert.getMaxTicketsPerPerson()) {
+            throw new IllegalStateException("1인 최대 예매 수량을 초과했습니다.");
         }
+
+        // 3. 좌석 SOLD 처리 (DB 조건부 UPDATE로 동시성 보장) + 잔여 좌석 카운터 감소
+        seatService.markAllAsSold(seatIds);
+        soldOutService.onSeatsTaken(scheduleId, seatIds.size());
+
+        // 4. 예매 생성 (Concert/Schedule 정보 비정규화로 함께 저장)
+        Schedule schedule = concertService.getSchedule(scheduleId);
+        int totalAmount = seats.stream().mapToInt(Seat::getPrice).sum();
+        Booking booking = new Booking(
+                userId, scheduleId, generateBookingNumber(), seatIds, totalAmount,
+                concert.getTitle(), schedule.getDate(), schedule.getTime(), concert.getVenue()
+        );
+        return bookingRepository.save(booking);
     }
 
     /**
@@ -136,7 +120,6 @@ public class BookingService {
         booking.cancel();
         seatService.markAllAsAvailable(booking.getSeatIds());
         soldOutService.onSeatsReleased(booking.getScheduleId(), booking.getSeatIds().size());
-        seatLockService.releaseAll(booking.getSeatIds());
 
         return bookingRepository.save(booking);
     }
@@ -164,10 +147,9 @@ public class BookingService {
             paymentService.refund(bookingId);
         }
 
-        // 3. 좌석 복구 + 잔여 좌석 카운터 증가 + 좌석 락 해제
+        // 3. 좌석 복구 + 잔여 좌석 카운터 증가
         seatService.markAllAsAvailable(booking.getSeatIds());
         soldOutService.onSeatsReleased(booking.getScheduleId(), booking.getSeatIds().size());
-        seatLockService.releaseAll(booking.getSeatIds());
 
         return bookingRepository.save(booking);
     }

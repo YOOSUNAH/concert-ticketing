@@ -14,4 +14,8 @@ public interface SeatRepository {
     Optional<Seat> findById(Long seatId);
 
     List<Seat> findAllByIds(List<Long> seatIds);
+
+    int markAsSoldWhereAvailable(List<Long> seatIds);
+
+    int markAsAvailableWhereSold(List<Long> seatIds);
 }
