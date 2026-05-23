@@ -1,4 +1,17 @@
 services:
+  nginx:
+    image: nginx:latest
+    container_name: concert-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+      - concert-api
+      - queue-api
+    restart: unless-stopped
+
   postgres:
     image: postgres:16
     container_name: concert-postgres
@@ -41,8 +54,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: concert
       SPRING_DATA_REDIS_HOST: redis
       SPRING_MONGODB_URI: mongodb://mongo:27017/concert
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     depends_on:
       - postgres
       - redis
@@ -56,10 +69,12 @@ services:
     container_name: concert-concert-api
     environment:
       SPRING_MONGODB_URI: mongodb://mongo:27017/concert
-    ports:
-      - "8082:8082"
+      SPRING_DATA_REDIS_HOST: redis
+    expose:
+      - "8082"
     depends_on:
       - mongo
+      - redis
     restart: unless-stopped
 
   queue-api:
@@ -69,8 +84,8 @@ services:
     container_name: concert-queue-api
     environment:
       SPRING_DATA_REDIS_HOST: redis
-    ports:
-      - "8081:8081"
+    expose:
+      - "8081"
     depends_on:
       - redis
     restart: unless-stopped

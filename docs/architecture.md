@@ -1,6 +1,27 @@
 # 콘서트 티켓팅 시스템 아키텍처
 
-## 서버 구조 분리
+## 서버 구조
+
+```
+프론트 → api.example.com (단일 주소)
+              │
+         API Gateway (Nginx :80)
+              │
+    ┌─────────┼──────────┐
+    ▼         ▼          ▼
+/concerts/** /queue/**   /**
+Concert API  Queue API  Main API
+  :8082       :8081      :8080
+```
+
+- 프론트는 하나의 주소만 알면 됨
+- Gateway가 URL 경로로 분배
+- Rate Limit: 좌석 조회 3r/s, 공연 조회 5r/s, 큐 2r/s (IP당)
+- 프록시 캐시: 좌석 조회 응답 3초 캐싱
+
+---
+
+## 서버별 상세
 
 ### api (port 8080) — 비즈니스 로직
 
