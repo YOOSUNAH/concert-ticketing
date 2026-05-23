@@ -142,7 +142,6 @@ services:
     build:
       context: .
       dockerfile: queue-worker/Dockerfile
-    container_name: concert-queue-worker
     environment:
       SPRING_DATA_REDIS_SENTINEL_MASTER: mymaster
       SPRING_DATA_REDIS_SENTINEL_NODES: redis-sentinel-1:26379,redis-sentinel-2:26379,redis-sentinel-3:26379
@@ -151,6 +150,8 @@ services:
       - redis-sentinel-2
       - redis-sentinel-3
     restart: always
+    deploy:
+      replicas: 2
 
 volumes:
   postgres-data:
