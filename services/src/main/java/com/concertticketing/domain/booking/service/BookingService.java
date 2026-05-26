@@ -3,11 +3,11 @@ package com.concertticketing.domain.booking.service;
 import com.concertticketing.domain.booking.entity.Booking;
 import com.concertticketing.domain.booking.entity.BookingStatus;
 import com.concertticketing.domain.booking.repository.BookingRepository;
-import com.concertticketing.domain.concert.entity.Concert;
-import com.concertticketing.domain.concert.service.ConcertService;
+import com.concertticketing.domain.concert.entity.ConcertRef;
+import com.concertticketing.domain.concert.service.ConcertRefService;
 import com.concertticketing.domain.payment.service.PaymentService;
 import com.concertticketing.domain.queue.service.QueueService;
-import com.concertticketing.domain.schedule.entity.Schedule;
+import com.concertticketing.domain.schedule.entity.ScheduleRef;
 import com.concertticketing.domain.seat.entity.Seat;
 import com.concertticketing.domain.seat.service.SeatService;
 import com.concertticketing.domain.soldout.SoldOutService;
@@ -20,20 +20,20 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final SeatService seatService;
-    private final ConcertService concertService;
+    private final ConcertRefService concertRefService;
     private final PaymentService paymentService;
     private final QueueService queueService;
     private final SoldOutService soldOutService;
 
     public BookingService(BookingRepository bookingRepository,
                           SeatService seatService,
-                          ConcertService concertService,
+                          ConcertRefService concertRefService,
                           PaymentService paymentService,
                           QueueService queueService,
                           SoldOutService soldOutService) {
         this.bookingRepository = bookingRepository;
         this.seatService = seatService;
-        this.concertService = concertService;
+        this.concertRefService = concertRefService;
         this.paymentService = paymentService;
         this.queueService = queueService;
         this.soldOutService = soldOutService;
@@ -55,7 +55,7 @@ public class BookingService {
         List<Seat> seats = seatService.getAvailableSeats(seatIds);
 
         // 2. 1인 최대 예매 수량 검증
-        Concert concert = concertService.getConcertByScheduleId(scheduleId);
+        ConcertRef concert = concertRefService.getConcertByScheduleId(scheduleId);
         int alreadyBooked = bookingRepository.countSeatsByUserIdAndScheduleId(userId, scheduleId);
         if (alreadyBooked + seatIds.size() > concert.getMaxTicketsPerPerson()) {
             throw new IllegalStateException("1인 최대 예매 수량을 초과했습니다.");
@@ -66,7 +66,7 @@ public class BookingService {
         soldOutService.onSeatsTaken(scheduleId, seatIds.size());
 
         // 4. 예매 생성 (Concert/Schedule 정보 비정규화로 함께 저장)
-        Schedule schedule = concertService.getSchedule(scheduleId);
+        ScheduleRef schedule = concertRefService.getSchedule(scheduleId);
         int totalAmount = seats.stream().mapToInt(Seat::getPrice).sum();
         Booking booking = new Booking(
                 userId, scheduleId, generateBookingNumber(), seatIds, totalAmount,

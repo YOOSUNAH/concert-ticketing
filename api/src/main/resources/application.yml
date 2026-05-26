@@ -2,6 +2,12 @@ spring:
   application:
     name: concert-ticketing
 
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.mongodb.autoconfigure.MongoAutoConfiguration
+      - org.springframework.boot.data.mongodb.autoconfigure.DataMongoAutoConfiguration
+      - org.springframework.boot.data.mongodb.autoconfigure.DataMongoRepositoriesAutoConfiguration
+
   datasource:
     url: jdbc:postgresql://localhost:5432/concert
     username: concert
@@ -23,9 +29,6 @@ spring:
       sentinel:
         master: mymaster
         nodes: localhost:26379
-
-  mongodb:
-    uri: mongodb://localhost:27017/concert
 
 jwt:
   secret: concert-ticketing-jwt-secret-key-for-development-only-must-be-256-bits

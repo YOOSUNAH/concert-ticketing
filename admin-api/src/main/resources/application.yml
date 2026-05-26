@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: admin-api
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/concert
+    username: concert
+    password: concert
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false
+
+  mongodb:
+    uri: mongodb://localhost:27017/concert
+
+  data:
+    redis:
+      sentinel:
+        master: mymaster
+        nodes: localhost:26379
+
+server:
+  port: 8083
