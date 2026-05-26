@@ -92,7 +92,6 @@ services:
       SPRING_DATASOURCE_PASSWORD: concert
       SPRING_DATA_REDIS_SENTINEL_MASTER: mymaster
       SPRING_DATA_REDIS_SENTINEL_NODES: redis-sentinel-1:26379,redis-sentinel-2:26379,redis-sentinel-3:26379
-      SPRING_MONGODB_URI: mongodb://mongo:27017/concert
     expose:
       - "8080"
     depends_on:
@@ -100,10 +99,31 @@ services:
       - redis-sentinel-1
       - redis-sentinel-2
       - redis-sentinel-3
-      - mongo
     restart: unless-stopped
     deploy:
       replicas: 2
+
+  admin-api:
+    build:
+      context: .
+      dockerfile: admin-api/Dockerfile
+    container_name: concert-admin-api
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/concert
+      SPRING_DATASOURCE_USERNAME: concert
+      SPRING_DATASOURCE_PASSWORD: concert
+      SPRING_DATA_REDIS_SENTINEL_MASTER: mymaster
+      SPRING_DATA_REDIS_SENTINEL_NODES: redis-sentinel-1:26379,redis-sentinel-2:26379,redis-sentinel-3:26379
+      SPRING_MONGODB_URI: mongodb://mongo:27017/concert
+    ports:
+      - "8083:8083"
+    depends_on:
+      - postgres
+      - mongo
+      - redis-sentinel-1
+      - redis-sentinel-2
+      - redis-sentinel-3
+    restart: unless-stopped
 
   concert-api:
     build:

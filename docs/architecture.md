@@ -12,12 +12,15 @@
 /concerts/** /queue/**   /**
 Concert API  Queue API  Main API
   :8082       :8081      :8080
+
+Admin API :8083 ← 관리자 직접 접근 (Gateway 미경유)
 ```
 
 - 프론트는 하나의 주소만 알면 됨
 - Gateway가 URL 경로로 분배
 - Rate Limit: 좌석 조회 3r/s, 공연 조회 5r/s, 큐 2r/s (IP당)
 - 프록시 캐시: 좌석 조회 응답 3초 캐싱
+- Admin API는 내부망 전용, Gateway를 경유하지 않음
 
 ---
 
@@ -27,21 +30,17 @@ Concert API  Queue API  Main API
 
 예매, 결제, 좌석, 사용자, 인증을 담당하는 핵심 서버.
 
-- **Postgres (JPA)**
-  - booking — 예매 정보 (userId, scheduleId, seatIds, totalAmount, status)
-  - payment — 결제 정보 (bookingId, paymentKey, amount, pointUsed)
-  - user — 사용자 (email, password, name, point)
-  - seat — 좌석 마스터 (scheduleId, seatNumber, grade, price, status)
+- **PostgreSQL (JPA)**
+  - booking, payment, user — 읽기/쓰기
+  - seat — 읽기/쓰기 (상태 변경: AVAILABLE ↔ SOLD)
+  - concert_ref, schedule_ref — 읽기 전용 (admin-api가 쓰기 담당)
 
 - **Redis (재고)**
   - `schedule:{scheduleId}:remaining-seats` — 잔여 좌석 카운터
   - `schedule:{scheduleId}:sold_out` — 매진 플래그 (TTL 없음, 취소 시 로직으로 삭제)
 
-- **MongoDB (읽기 전용)**
-  - 예매 생성 시 Concert/Schedule 정보를 조회하여 Booking에 비정규화 저장
-
-공연 정보 조회는 읽기 위주 + 캐시가 잘 되므로 부하 패턴이 완전히 다름.
-본 api가 예매/결제로 바쁠 때 공연 정보 조회 트래픽을 따로 흡수하기 위해 concert-api를 분리.
+- 좌석 동시성 제어: PostgreSQL 조건부 UPDATE (`WHERE status = 'AVAILABLE'`)
+- 공연 정보 조회는 concert-api가 분리 흡수 → 예매/결제에 집중
 
 ---
 
@@ -52,7 +51,7 @@ Concert API  Queue API  Main API
   - Schedule은 별도 컬렉션이 아니라 Concert 문서 안에 임베디드 (`List<Schedule>`)
 
 - **Redis (매진 상태 조회)**
-  - `schedule:{scheduleId}:sold_out` — 스케줄별 매진 여부 조회 (응답에 soldOut 필드 포함)
+  - `schedule:{scheduleId}:sold_out` — 매진 여부 조회 (응답에 soldOut 필드 포함)
 
 - **Caffeine 캐시**
   - `concert-list` — 목록 조회 캐시 (1시간 TTL, max 1000)
@@ -60,6 +59,26 @@ Concert API  Queue API  Main API
 - **엔드포인트** (GET만 존재, POST/PUT/DELETE 없음)
   - `GET /concerts?page=0&size=10` — 목록 조회
   - `GET /concerts/{concertId}` — 상세 + 스케줄 조회 (각 스케줄에 soldOut 포함)
+
+---
+
+### admin-api (port 8083) — 공연 데이터 쓰기 담당
+
+두 DB에 걸친 데이터 일관성을 보장하는 유일한 쓰기 서버.
+
+- **PostgreSQL + MongoDB (dual-write)**
+  - 스케줄(MongoDB)과 좌석(PostgreSQL)이 서로를 참조하는 구조
+  - 한 곳에서 양쪽을 동시에 써야 불일치 방지
+  - `@Transactional` 내에서 PostgreSQL 먼저, MongoDB 후 — 실패 시 롤백
+
+- **Redis**
+  - `schedule:{scheduleId}:remaining-seats` — 공연 생성 시 잔여 좌석 초기화
+
+- **엔드포인트**
+  - `POST /admin/concerts` — 공연 생성 (양쪽 DB + 좌석 + Redis)
+  - `PUT /admin/concerts/{concertId}` — 공연 정보 수정 (dual-write)
+  - `GET /admin/concerts` — 공연 목록 조회
+  - `POST /admin/concerts/{concertId}/schedules` — 스케줄 추가
 
 ---
 
@@ -88,11 +107,8 @@ Concert API  Queue API  Main API
 
 - **Redis** — queue-api와 동일한 키 구조 전부 사용
 
-- **SPOF 대응**
-  - 현재는 `restart: always`로 컨테이너 자동 재기동에만 의존
-  - 죽어 있는 동안 WAITING → ACTIVE 승격이 멈춰서, 유저는 폴링은 계속 받지만 순번이 안 줄어드는 상태가 됨
-  - 컨테이너 재기동 시간(수 초)이 폴링 간격(5초)과 비슷해서 현 단계에서는 감수
-  - 실제 대비: worker 다중화 + 리더 선출(Redisson/ZK) 필요
+- **다중화**
+  - replicas: 2로 다중화 (리더 선출 미적용, 두 워커가 독립 실행)
 
 ---
 

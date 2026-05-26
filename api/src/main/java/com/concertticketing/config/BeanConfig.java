@@ -4,15 +4,15 @@ import com.concertticketing.domain.auth.jwt.JwtTokenProvider;
 import com.concertticketing.domain.auth.service.AuthService;
 import com.concertticketing.domain.booking.repository.BookingRepository;
 import com.concertticketing.domain.booking.service.BookingService;
-import com.concertticketing.domain.concert.repository.ConcertRepository;
-import com.concertticketing.domain.concert.service.ConcertService;
+import com.concertticketing.domain.concert.repository.ConcertRefRepository;
+import com.concertticketing.domain.concert.service.ConcertRefService;
 import com.concertticketing.domain.payment.gateway.PaymentGateway;
 import com.concertticketing.domain.payment.repository.PaymentRepository;
 import com.concertticketing.domain.payment.service.PaymentService;
 import com.concertticketing.domain.queue.config.QueueProperties;
 import com.concertticketing.domain.queue.repository.QueueRepository;
 import com.concertticketing.domain.queue.service.QueueService;
-import com.concertticketing.domain.schedule.repository.ScheduleRepository;
+import com.concertticketing.domain.schedule.repository.ScheduleRefRepository;
 import com.concertticketing.domain.seat.repository.SeatRepository;
 import com.concertticketing.domain.seat.service.SeatService;
 import com.concertticketing.domain.soldout.SoldOutService;
@@ -63,14 +63,9 @@ public class BeanConfig {
     }
 
     @Bean
-    public ScheduleRepository scheduleRepository(ConcertRepository concertRepository) {
-        return new ScheduleRepository(concertRepository);
-    }
-
-    @Bean
-    public ConcertService concertService(ConcertRepository concertRepository,
-                                         ScheduleRepository scheduleRepository) {
-        return new ConcertService(concertRepository, scheduleRepository);
+    public ConcertRefService concertRefService(ConcertRefRepository concertRefRepository,
+                                               ScheduleRefRepository scheduleRefRepository) {
+        return new ConcertRefService(concertRefRepository, scheduleRefRepository);
     }
 
     @Bean
@@ -108,11 +103,11 @@ public class BeanConfig {
     @Bean
     public BookingService bookingService(BookingRepository bookingRepository,
                                          SeatService seatService,
-                                         ConcertService concertService,
+                                         ConcertRefService concertRefService,
                                          PaymentService paymentService,
                                          QueueService queueService,
                                          SoldOutService soldOutService) {
-        return new BookingService(bookingRepository, seatService, concertService,
+        return new BookingService(bookingRepository, seatService, concertRefService,
                 paymentService, queueService, soldOutService);
     }
 }
