@@ -89,7 +89,7 @@ public class AdminConcertService {
             ));
 
             // 5. Redis: 잔여 좌석 카운터 초기화
-            soldOutService.initRemainingSeats(scheduleId, totalSeats);
+            soldOutService.initRemainingSeats(scheduleId, totalSeats, scheduleReq.date());
         }
 
         // 4. MongoDB: Concert 문서 저장
@@ -173,7 +173,7 @@ public class AdminConcertService {
         concertRepository.save(concert);
 
         // Redis: 잔여 좌석 카운터 초기화
-        soldOutService.initRemainingSeats(scheduleId, totalSeats);
+        soldOutService.initRemainingSeats(scheduleId, totalSeats, request.date());
 
         return ConcertResponse.from(concert);
     }
