@@ -51,7 +51,7 @@ public interface QueueRepository {
     // === 잔여 좌석 카운터 + 매진/큐종료 플래그 ===
 
     /** 잔여 좌석 카운터 초기화 (Schedule 시드 또는 lazy init) */
-    void initRemainingSeats(Long scheduleId, int total);
+    void initRemainingSeats(Long scheduleId, int total, java.time.LocalDate scheduleDate);
 
     /** 잔여 좌석 감소. 새 값 반환. 0 이하면 매진 신호 */
     long decreaseRemainingSeats(Long scheduleId, int count);
