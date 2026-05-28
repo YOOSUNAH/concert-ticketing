@@ -20,6 +20,17 @@ services:
     volumes:
       - redis-data:/data
 
+  mongo:
+    image: mongo:7
+    container_name: concert-mongo
+    environment:
+      MONGO_INITDB_DATABASE: concert
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+
   api:
     build:
       context: .
@@ -30,11 +41,26 @@ services:
       SPRING_DATASOURCE_USERNAME: concert
       SPRING_DATASOURCE_PASSWORD: concert
       SPRING_DATA_REDIS_HOST: redis
+      SPRING_MONGODB_URI: mongodb://mongo:27017/concert
     ports:
       - "8080:8080"
     depends_on:
       - postgres
       - redis
+      - mongo
+    restart: unless-stopped
+
+  concert-api:
+    build:
+      context: .
+      dockerfile: concert-api/Dockerfile
+    container_name: concert-concert-api
+    environment:
+      SPRING_MONGODB_URI: mongodb://mongo:27017/concert
+    ports:
+      - "8082:8082"
+    depends_on:
+      - mongo
     restart: unless-stopped
 
   queue-api:
@@ -64,3 +90,4 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  mongo-data:

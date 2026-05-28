@@ -1,4 +1,4 @@
-package com.concertticketing.domain.concert.dto;
+package com.concertticketing.concert.api.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

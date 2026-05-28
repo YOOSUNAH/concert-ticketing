@@ -1,12 +1,13 @@
-package com.concertticketing.domain.concert.controller;
+package com.concertticketing.concert.api.controller;
 
-import com.concertticketing.domain.concert.dto.ConcertDetailResponse;
-import com.concertticketing.domain.concert.dto.ConcertListResponse;
-import com.concertticketing.domain.concert.dto.ConcertStatus;
+import com.concertticketing.concert.api.dto.ConcertDetailResponse;
+import com.concertticketing.concert.api.dto.ConcertListResponse;
+import com.concertticketing.concert.api.dto.ConcertStatus;
 import com.concertticketing.domain.concert.dto.ConcertWithSchedules;
 import com.concertticketing.domain.concert.entity.Concert;
 import com.concertticketing.domain.concert.service.ConcertService;
 import com.concertticketing.domain.schedule.entity.Schedule;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,6 +29,7 @@ public class ConcertController {
 
     // 콘서트 목록 조회 - Public
     @GetMapping
+    @Cacheable(value = "concert-list", key = "#page + ':' + #size")
     public ResponseEntity<ConcertListResponse> getConcerts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
@@ -57,6 +59,7 @@ public class ConcertController {
 
     // 콘서트 상세 조회 - Public
     @GetMapping("/{concertId}")
+    @Cacheable(value = "concert", key = "#concertId")
     public ResponseEntity<ConcertDetailResponse> getConcert(@PathVariable Long concertId) {
         ConcertWithSchedules detail = concertService.getConcertDetail(concertId);
         Concert concert = detail.getConcert();

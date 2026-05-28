@@ -65,6 +65,11 @@ public class BeanConfig {
     }
 
     @Bean
+    public ScheduleRepository scheduleRepository(ConcertRepository concertRepository) {
+        return new ScheduleRepository(concertRepository);
+    }
+
+    @Bean
     public ConcertService concertService(ConcertRepository concertRepository,
                                          ScheduleRepository scheduleRepository) {
         return new ConcertService(concertRepository, scheduleRepository);

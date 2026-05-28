@@ -19,42 +19,29 @@ public class ConcertService {
         this.scheduleRepository = scheduleRepository;
     }
 
-    /**
-     * 콘서트 목록 조회 (페이징)
-     */
+    /** 콘서트 목록 조회 (페이징) */
     public List<Concert> getConcerts(int page, int size) {
         return concertRepository.findAll(page, size);
     }
 
-    /**
-     * 전체 콘서트 수 (페이징 정보용)
-     */
+    /** 전체 콘서트 수 (페이징 정보용) */
     public long getTotalCount() {
         return concertRepository.count();
     }
 
-    /**
-     * 콘서트 상세 조회 (스케줄 포함)
-     */
+    /** 콘서트 상세 조회 (스케줄 포함) — 임베디드라 단일 쿼리 */
     public ConcertWithSchedules getConcertDetail(Long concertId) {
-        Concert concert = concertRepository.findById(concertId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 콘서트입니다."));
-
-        List<Schedule> schedules = scheduleRepository.findByConcertId(concertId);
-
-        return new ConcertWithSchedules(concert, schedules);
+        Concert concert = getConcert(concertId);
+        return new ConcertWithSchedules(concert, concert.getSchedules());
     }
 
-    /**
-     * scheduleId로 소속 콘서트 조회
-     * - schedule → concertId → concert 두 단계 lookup을 캡슐화
-     */
+    /** scheduleId로 소속 콘서트 조회 (임베디드 schedules.id 매치) */
     public Concert getConcertByScheduleId(Long scheduleId) {
-        Schedule schedule = scheduleRepository.findById(scheduleId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 스케줄입니다."));
-
-        return concertRepository.findById(schedule.getConcertId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 콘서트입니다."));
+        Concert concert = concertRepository.findFirstBySchedulesIdEquals(scheduleId);
+        if (concert == null) {
+            throw new IllegalArgumentException("존재하지 않는 스케줄입니다.");
+        }
+        return concert;
     }
 
     public Schedule getSchedule(Long scheduleId) {

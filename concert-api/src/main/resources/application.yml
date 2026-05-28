@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: concert-api
+
+  cache:
+    type: caffeine
+    cache-names: concert, concert-list
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=1h
+
+  mongodb:
+    uri: mongodb://localhost:27017/concert
+
+server:
+  port: 8082
+
+logging:
+  level:
+    com.concertticketing: INFO
