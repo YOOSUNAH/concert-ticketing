@@ -4,14 +4,14 @@ import com.concertticketing.auth.AuthUserId;
 import com.concertticketing.domain.booking.dto.BookingStatus;
 import com.concertticketing.domain.booking.entity.Booking;
 import com.concertticketing.domain.booking.service.BookingService;
-import com.concertticketing.domain.concert.entity.Concert;
-import com.concertticketing.domain.concert.service.ConcertService;
+import com.concertticketing.domain.concert.entity.ConcertRef;
+import com.concertticketing.domain.concert.service.ConcertRefService;
 import com.concertticketing.domain.payment.dto.PaymentConfirmRequest;
 import com.concertticketing.domain.payment.dto.PaymentConfirmResponse;
 import com.concertticketing.domain.payment.entity.Payment;
 import com.concertticketing.domain.payment.gateway.PaymentGatewayException;
 import com.concertticketing.domain.payment.service.PaymentService;
-import com.concertticketing.domain.schedule.entity.Schedule;
+import com.concertticketing.domain.schedule.entity.ScheduleRef;
 import com.concertticketing.domain.seat.entity.Seat;
 import com.concertticketing.domain.seat.service.SeatService;
 import org.springframework.http.ResponseEntity;
@@ -29,16 +29,16 @@ public class PaymentController {
 
     private final PaymentService paymentService;
     private final BookingService bookingService;
-    private final ConcertService concertService;
+    private final ConcertRefService concertRefService;
     private final SeatService seatService;
 
     public PaymentController(PaymentService paymentService,
                              BookingService bookingService,
-                             ConcertService concertService,
+                             ConcertRefService concertRefService,
                              SeatService seatService) {
         this.paymentService = paymentService;
         this.bookingService = bookingService;
-        this.concertService = concertService;
+        this.concertRefService = concertRefService;
         this.seatService = seatService;
     }
 
@@ -68,8 +68,8 @@ public class PaymentController {
 
     private PaymentConfirmResponse toSuccessResponse(Payment payment, Long userId) {
         Booking booking = bookingService.getBookingDetail(payment.getBookingId(), userId);
-        Schedule schedule = concertService.getSchedule(booking.getScheduleId());
-        Concert concert = concertService.getConcert(schedule.getConcertId());
+        ScheduleRef schedule = concertRefService.getSchedule(booking.getScheduleId());
+        ConcertRef concert = concertRefService.getConcertByScheduleId(booking.getScheduleId());
         List<String> seatNumbers = seatService.getSeatsByIds(booking.getSeatIds()).stream()
                 .map(Seat::getSeatNumber)
                 .toList();
