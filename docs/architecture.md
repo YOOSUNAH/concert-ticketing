@@ -1,6 +1,27 @@
 # 콘서트 티켓팅 시스템 아키텍처
 
-## 서버 구조 분리
+## 서버 구조
+
+```
+프론트 → api.example.com (단일 주소)
+              │
+         API Gateway (Nginx :80)
+              │
+    ┌─────────┼──────────┐
+    ▼         ▼          ▼
+/concerts/** /queue/**   /**
+Concert API  Queue API  Main API
+  :8082       :8081      :8080
+```
+
+- 프론트는 하나의 주소만 알면 됨
+- Gateway가 URL 경로로 분배
+- Rate Limit: 좌석 조회 3r/s, 공연 조회 5r/s, 큐 2r/s (IP당)
+- 프록시 캐시: 좌석 조회 응답 3초 캐싱
+
+---
+
+## 서버별 상세
 
 ### api (port 8080) — 비즈니스 로직
 
@@ -30,13 +51,15 @@
   - Concert 문서 (`concerts` 컬렉션)
   - Schedule은 별도 컬렉션이 아니라 Concert 문서 안에 임베디드 (`List<Schedule>`)
 
+- **Redis (매진 상태 조회)**
+  - `schedule:{scheduleId}:sold_out` — 스케줄별 매진 여부 조회 (응답에 soldOut 필드 포함)
+
 - **Caffeine 캐시**
   - `concert-list` — 목록 조회 캐시 (1시간 TTL, max 1000)
-  - `concert` — 상세 조회 캐시 (1시간 TTL, max 1000)
 
 - **엔드포인트** (GET만 존재, POST/PUT/DELETE 없음)
   - `GET /concerts?page=0&size=10` — 목록 조회
-  - `GET /concerts/{concertId}` — 상세 + 스케줄 조회
+  - `GET /concerts/{concertId}` — 상세 + 스케줄 조회 (각 스케줄에 soldOut 포함)
 
 ---
 

@@ -50,7 +50,7 @@ public class QueueService {
     /**
      * (2) 대기 순번 조회 (폴링)
      * - 큐 종료 상태이면 종료 사유(SOLD_OUT 등) 반환
-     * - heartbeat 갱신
+     * - heartbeat TTL 갱신
      * - ACTIVE이면 admissionToken 반환
      * - WAITING이면 현재 순번 + 예상 대기시간 반환
      */

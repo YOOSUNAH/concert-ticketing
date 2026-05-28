@@ -26,5 +26,6 @@ public class ConcertDetailResponse {
         private String time;
         private int totalSeats;
         private int remainingSeats;
+        private boolean soldOut;
     }
 }
