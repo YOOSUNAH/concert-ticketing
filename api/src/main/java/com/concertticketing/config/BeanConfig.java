@@ -13,8 +13,6 @@ import com.concertticketing.domain.queue.config.QueueProperties;
 import com.concertticketing.domain.queue.repository.QueueRepository;
 import com.concertticketing.domain.queue.service.QueueService;
 import com.concertticketing.domain.schedule.repository.ScheduleRepository;
-import com.concertticketing.domain.seat.lock.SeatLockRepository;
-import com.concertticketing.domain.seat.lock.SeatLockService;
 import com.concertticketing.domain.seat.repository.SeatRepository;
 import com.concertticketing.domain.seat.service.SeatService;
 import com.concertticketing.domain.soldout.SoldOutService;
@@ -82,13 +80,11 @@ public class BeanConfig {
 
     @Bean
     public QueueProperties queueProperties(
-            @Value("${queue.heartbeat-ttl-seconds}") int heartbeatTtlSeconds,
+            @Value("${queue.heartbeat-threshold-seconds}") int heartbeatThresholdSeconds,
             @Value("${queue.max-active-count}") int maxActiveCount,
-            @Value("${queue.active-expire-seconds}") int activeExpireSeconds,
-            @Value("${queue.token-ttl-seconds}") int tokenTtlSeconds
+            @Value("${queue.active-expire-seconds}") int activeExpireSeconds
     ) {
-        return new QueueProperties(heartbeatTtlSeconds, maxActiveCount,
-                activeExpireSeconds, tokenTtlSeconds);
+        return new QueueProperties(heartbeatThresholdSeconds, maxActiveCount, activeExpireSeconds);
     }
 
     @Bean
@@ -99,14 +95,6 @@ public class BeanConfig {
     @Bean
     public SoldOutService soldOutService(QueueRepository queueRepository) {
         return new SoldOutService(queueRepository);
-    }
-
-    @Bean
-    public SeatLockService seatLockService(
-            SeatLockRepository seatLockRepository,
-            @Value("${queue.active-expire-seconds}") int activeExpireSeconds
-    ) {
-        return new SeatLockService(seatLockRepository, activeExpireSeconds);
     }
 
     @Bean
@@ -123,9 +111,8 @@ public class BeanConfig {
                                          ConcertService concertService,
                                          PaymentService paymentService,
                                          QueueService queueService,
-                                         SoldOutService soldOutService,
-                                         SeatLockService seatLockService) {
+                                         SoldOutService soldOutService) {
         return new BookingService(bookingRepository, seatService, concertService,
-                paymentService, queueService, soldOutService, seatLockService);
+                paymentService, queueService, soldOutService);
     }
 }

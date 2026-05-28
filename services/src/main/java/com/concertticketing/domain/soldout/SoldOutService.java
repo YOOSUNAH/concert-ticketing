@@ -4,8 +4,6 @@ import com.concertticketing.domain.queue.repository.QueueRepository;
 
 public class SoldOutService {
 
-    private static final int SOLD_OUT_TTL_SECONDS = 86400; // 24시간
-
     private final QueueRepository queueRepository;
 
     public SoldOutService(QueueRepository queueRepository) {
@@ -23,12 +21,18 @@ public class SoldOutService {
     public void onSeatsTaken(Long scheduleId, int count) {
         long remaining = queueRepository.decreaseRemainingSeats(scheduleId, count);
         if (remaining <= 0) {
-            queueRepository.markSoldOut(scheduleId, SOLD_OUT_TTL_SECONDS);
+            queueRepository.markSoldOut(scheduleId);
         }
     }
 
-    /** 좌석 해제 시 호출 (예매 취소/실패). */
+    /**
+     * 좌석 해제 시 호출 (예매 취소/실패).
+     * 잔여석이 다시 생기면 sold_out 플래그를 제거하여 예매를 재개한다.
+     */
     public void onSeatsReleased(Long scheduleId, int count) {
         queueRepository.increaseRemainingSeats(scheduleId, count);
+        if (queueRepository.isSoldOut(scheduleId)) {
+            queueRepository.removeSoldOut(scheduleId);
+        }
     }
 }

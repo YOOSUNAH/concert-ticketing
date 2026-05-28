@@ -12,10 +12,9 @@
   - user — 사용자 (email, password, name, point)
   - seat — 좌석 마스터 (scheduleId, seatNumber, grade, price, status)
 
-- **Redis (좌석 락 + 재고)**
-  - `lock:seat:{seatId}` — 좌석 분산 락 (SETNX, TTL)
+- **Redis (재고)**
   - `schedule:{scheduleId}:remaining-seats` — 잔여 좌석 카운터
-  - `schedule:{scheduleId}:sold_out` — 매진 플래그 (TTL 24시간)
+  - `schedule:{scheduleId}:sold_out` — 매진 플래그 (TTL 없음, 취소 시 로직으로 삭제)
 
 - **MongoDB (읽기 전용)**
   - 예매 생성 시 Concert/Schedule 정보를 조회하여 Booking에 비정규화 저장
@@ -46,7 +45,7 @@
 - **Redis 키 구조**
   - `queue:waiting:{scheduleId}` — 대기 ZSet (score = 입장시각 ms, FIFO)
   - `queue:active:{scheduleId}` — 활성 ZSet (ADMITTED된 유저)
-  - `queue:hb:{scheduleId}:{userId}` — 하트비트 (TTL 기반 생존 확인)
+  - `queue:hb:{scheduleId}:{userId}` — 하트비트 (타임스탬프 기반 생존 확인)
   - `queue:token:{uuid}` — 큐 토큰 → scheduleId:userId 매핑
   - `queue:{scheduleId}:closed` — 매진 시 큐 종료 플래그 (폴링 응답용)
 
@@ -109,9 +108,8 @@ CDN(Content Delivery Network)을 통해 사용자 가까운 엣지 서버에서 
 
 | 데이터 | 키 패턴 | 특성 |
 |--------|---------|------|
-| 좌석 분산 락 | `lock:seat:{seatId}` | 동시성 제어, 짧은 TTL |
 | 잔여 좌석 수 | `schedule:{scheduleId}:remaining-seats` | 초당 수천 쓰기 |
-| 매진 플래그 | `schedule:{scheduleId}:sold_out` | TTL 24시간 |
+| 매진 플래그 | `schedule:{scheduleId}:sold_out` | 로직 기반 삭제 |
 
 ### 큐 / 휘발성 데이터 → Redis
 
@@ -120,7 +118,7 @@ CDN(Content Delivery Network)을 통해 사용자 가까운 엣지 서버에서 
 | 대기열 | `queue:waiting:{scheduleId}` ZSet | 정렬/카운트가 빨라야 함 |
 | 활성 유저 | `queue:active:{scheduleId}` ZSet | TTL 자동 만료 |
 | 큐 토큰 | `queue:token:{uuid}` | 휘발성 |
-| 하트비트 | `queue:hb:{scheduleId}:{userId}` | TTL 기반 생존 확인 |
+| 하트비트 | `queue:hb:{scheduleId}:{userId}` | 타임스탬프 기반 생존 확인 |
 | 큐 종료 | `queue:{scheduleId}:closed` | 매진 시 설정 |
 
 ### 인증 토큰 → JWT (Stateless)

@@ -34,17 +34,19 @@ public interface QueueRepository {
     /** 만료된 ACTIVE 멤버 제거 (score < 현재시각) */
     List<Long> removeExpiredActive(Long scheduleId, long now);
 
-    // === Heartbeat (TTL 기반) ===
+    // === Heartbeat (타임스탬프 기반) ===
 
-    void refreshHeartbeat(Long scheduleId, Long userId, int ttlSeconds);
+    void refreshHeartbeat(Long scheduleId, Long userId);
 
-    boolean isAlive(Long scheduleId, Long userId);
+    boolean isAlive(Long scheduleId, Long userId, int thresholdSeconds);
 
     // === Token 매핑 (UUID → scheduleId:userId) ===
 
-    void saveTokenMapping(String token, Long scheduleId, Long userId, int ttlSeconds);
+    void saveTokenMapping(String token, Long scheduleId, Long userId);
 
     String getTokenMapping(String token);
+
+    void deleteTokenMapping(String token);
 
     // === 잔여 좌석 카운터 + 매진/큐종료 플래그 ===
 
@@ -58,15 +60,17 @@ public interface QueueRepository {
     void increaseRemainingSeats(Long scheduleId, int count);
 
     /** 매진 플래그 set (api → queue-worker 통신 매개) */
-    void markSoldOut(Long scheduleId, int ttlSeconds);
+    void markSoldOut(Long scheduleId);
 
     boolean isSoldOut(Long scheduleId);
+
+    void removeSoldOut(Long scheduleId);
 
     /** 큐 강제 종료 (queue-worker가 매진 감지 시 호출) */
     void deleteWaitingQueue(Long scheduleId);
 
     /** 종료된 큐 표시 (queue-api 폴링 응답용) */
-    void markQueueClosed(Long scheduleId, String reason, int ttlSeconds);
+    void markQueueClosed(Long scheduleId, String reason);
 
     String getQueueClosedReason(Long scheduleId);
 }

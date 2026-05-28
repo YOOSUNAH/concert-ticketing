@@ -11,7 +11,6 @@ import java.util.UUID;
 public class QueueService {
 
     public static final String CLOSED_REASON_SOLD_OUT = "SOLD_OUT";
-    private static final int CLOSED_TTL_SECONDS = 3600;
 
     private final QueueRepository queueRepository;
     private final QueueProperties properties;
@@ -35,11 +34,11 @@ public class QueueService {
 
         long now = System.currentTimeMillis();
 
-        queueRepository.refreshHeartbeat(scheduleId, userId, properties.getHeartbeatTtlSeconds());
+        queueRepository.refreshHeartbeat(scheduleId, userId);
         queueRepository.addToWaiting(scheduleId, userId, now);
 
         String queueToken = UUID.randomUUID().toString();
-        queueRepository.saveTokenMapping(queueToken, scheduleId, userId, properties.getTokenTtlSeconds());
+        queueRepository.saveTokenMapping(queueToken, scheduleId, userId);
 
         Long rank = queueRepository.getWaitingRank(scheduleId, userId);
         long displayRank = (rank != null) ? rank + 1 : 1;
@@ -51,7 +50,7 @@ public class QueueService {
     /**
      * (2) 대기 순번 조회 (폴링)
      * - 큐 종료 상태이면 종료 사유(SOLD_OUT 등) 반환
-     * - heartbeat TTL 갱신
+     * - heartbeat 갱신
      * - ACTIVE이면 admissionToken 반환
      * - WAITING이면 현재 순번 + 예상 대기시간 반환
      */
@@ -63,7 +62,7 @@ public class QueueService {
             return new QueueStatusResult(0, closedReason, null);
         }
 
-        queueRepository.refreshHeartbeat(scheduleId, userId, properties.getHeartbeatTtlSeconds());
+        queueRepository.refreshHeartbeat(scheduleId, userId);
 
         if (queueRepository.isActive(scheduleId, userId)) {
             return new QueueStatusResult(0, "ADMITTED", queueToken);
@@ -133,7 +132,7 @@ public class QueueService {
             }
 
             // heartbeat 확인 (이탈자 스킵)
-            if (!queueRepository.isAlive(scheduleId, candidateUserId)) {
+            if (!queueRepository.isAlive(scheduleId, candidateUserId, properties.getHeartbeatThresholdSeconds())) {
                 queueRepository.removeFromWaiting(scheduleId, candidateUserId);
                 continue;
             }
@@ -153,7 +152,7 @@ public class QueueService {
      */
     public void closeSoldOutQueue(Long scheduleId) {
         queueRepository.deleteWaitingQueue(scheduleId);
-        queueRepository.markQueueClosed(scheduleId, CLOSED_REASON_SOLD_OUT, CLOSED_TTL_SECONDS);
+        queueRepository.markQueueClosed(scheduleId, CLOSED_REASON_SOLD_OUT);
     }
 
     /** 매진 플래그 존재 여부 (queue-worker 스케줄러용). */
