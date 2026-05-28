@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(./gradlew compileJava)",
+      "Bash(./gradlew :api:test)",
+      "Bash(./gradlew :services:test)",
+      "Bash(git stash:*)",
+      "Bash(./gradlew :services:test --tests \"*SoldOutServiceTest*\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}
