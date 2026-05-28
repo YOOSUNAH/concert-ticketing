@@ -7,6 +7,7 @@ import com.concertticketing.domain.concert.entity.Concert;
 import com.concertticketing.domain.concert.service.ConcertService;
 import com.concertticketing.domain.payment.service.PaymentService;
 import com.concertticketing.domain.queue.service.QueueService;
+import com.concertticketing.domain.schedule.entity.Schedule;
 import com.concertticketing.domain.seat.entity.Seat;
 import com.concertticketing.domain.seat.service.SeatService;
 
@@ -59,9 +60,13 @@ public class BookingService {
         // 3. 좌석 SOLD 처리
         seatService.markAllAsSold(seatIds);
 
-        // 4. 예매 생성
+        // 4. 예매 생성 (Concert/Schedule 정보 비정규화로 함께 저장)
+        Schedule schedule = concertService.getSchedule(scheduleId);
         int totalAmount = seats.stream().mapToInt(Seat::getPrice).sum();
-        Booking booking = new Booking(userId, scheduleId, generateBookingNumber(), seatIds, totalAmount);
+        Booking booking = new Booking(
+                userId, scheduleId, generateBookingNumber(), seatIds, totalAmount,
+                concert.getTitle(), schedule.getDate(), schedule.getTime(), concert.getVenue()
+        );
         return bookingRepository.save(booking);
     }
 

@@ -13,7 +13,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Table;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Entity
@@ -45,6 +47,18 @@ public class Booking {
     @Column(nullable = false)
     private int totalAmount;
 
+    @Column(nullable = false)
+    private String concertTitle;
+
+    @Column(nullable = false)
+    private LocalDate scheduleDate;
+
+    @Column(nullable = false)
+    private LocalTime scheduleTime;
+
+    @Column(nullable = false)
+    private String venueName;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BookingStatus status;
@@ -58,12 +72,18 @@ public class Booking {
     }
 
     public Booking(Long userId, Long scheduleId, String bookingNumber,
-                   List<Long> seatIds, int totalAmount) {
+                   List<Long> seatIds, int totalAmount,
+                   String concertTitle, LocalDate scheduleDate,
+                   LocalTime scheduleTime, String venueName) {
         this.userId = userId;
         this.scheduleId = scheduleId;
         this.bookingNumber = bookingNumber;
         this.seatIds = seatIds;
         this.totalAmount = totalAmount;
+        this.concertTitle = concertTitle;
+        this.scheduleDate = scheduleDate;
+        this.scheduleTime = scheduleTime;
+        this.venueName = venueName;
         this.status = BookingStatus.PENDING;
         this.createdAt = LocalDateTime.now();
     }
@@ -111,6 +131,22 @@ public class Booking {
 
     public int getTotalAmount() {
         return totalAmount;
+    }
+
+    public String getConcertTitle() {
+        return concertTitle;
+    }
+
+    public LocalDate getScheduleDate() {
+        return scheduleDate;
+    }
+
+    public LocalTime getScheduleTime() {
+        return scheduleTime;
+    }
+
+    public String getVenueName() {
+        return venueName;
     }
 
     public BookingStatus getStatus() {

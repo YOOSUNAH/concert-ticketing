@@ -9,6 +9,7 @@ import com.concertticketing.domain.concert.service.ConcertService;
 import com.concertticketing.domain.payment.gateway.PaymentGateway;
 import com.concertticketing.domain.payment.repository.PaymentRepository;
 import com.concertticketing.domain.payment.service.PaymentService;
+import com.concertticketing.domain.queue.config.QueueProperties;
 import com.concertticketing.domain.queue.repository.QueueRepository;
 import com.concertticketing.domain.queue.service.QueueService;
 import com.concertticketing.domain.schedule.repository.ScheduleRepository;
@@ -72,8 +73,19 @@ public class BeanConfig {
     }
 
     @Bean
-    public QueueService queueService(QueueRepository queueRepository) {
-        return new QueueService(queueRepository);
+    public QueueProperties queueProperties(
+            @Value("${queue.heartbeat-ttl-seconds}") int heartbeatTtlSeconds,
+            @Value("${queue.max-active-count}") int maxActiveCount,
+            @Value("${queue.active-expire-seconds}") int activeExpireSeconds,
+            @Value("${queue.token-ttl-seconds}") int tokenTtlSeconds
+    ) {
+        return new QueueProperties(heartbeatTtlSeconds, maxActiveCount,
+                activeExpireSeconds, tokenTtlSeconds);
+    }
+
+    @Bean
+    public QueueService queueService(QueueRepository queueRepository, QueueProperties queueProperties) {
+        return new QueueService(queueRepository, queueProperties);
     }
 
     @Bean
