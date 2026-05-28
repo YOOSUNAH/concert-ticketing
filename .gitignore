@@ -11,3 +11,6 @@ build/
 
 ### Logs ###
 *.log
+
+### Claude Code ###
+.claude/worktrees/
