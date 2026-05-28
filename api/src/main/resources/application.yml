@@ -27,6 +27,9 @@ spring:
   mongodb:
     uri: mongodb://localhost:27017/concert
 
+  mongodb:
+    uri: mongodb://localhost:27017/concert
+
 jwt:
   secret: concert-ticketing-jwt-secret-key-for-development-only-must-be-256-bits
   validity-seconds: 3600
