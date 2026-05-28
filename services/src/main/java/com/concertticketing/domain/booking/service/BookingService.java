@@ -44,7 +44,7 @@ public class BookingService {
      * 0. 대기열 통과 검증 (admissionToken)
      * 1. 좌석 AVAILABLE 검증 (SeatService)
      * 2. 1인 최대 예매 수량 초과 검증 (ConcertService로 schedule→concert 흡수)
-     * 3. 좌석 일괄 SOLD 처리 (SeatService)
+     * 3. 좌석 SOLD 처리 (DB 조건부 UPDATE로 동시성 보장) + 잔여 좌석 카운터 감소
      * 4. 예매 생성 & 저장
      */
     public Booking createBooking(Long userId, Long scheduleId, List<Long> seatIds, String admissionToken) {

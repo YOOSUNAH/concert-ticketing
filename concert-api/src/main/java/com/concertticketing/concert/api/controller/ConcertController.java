@@ -63,6 +63,7 @@ public class ConcertController {
     // 콘서트 상세 조회 - Public
     // soldOut은 실시간 Redis 상태이므로 캐시 밖에서 조회하여 응답에 합성
     @GetMapping("/{concertId}")
+    @Cacheable(value = "concert", key = "#concertId")
     public ResponseEntity<ConcertDetailResponse> getConcert(@PathVariable Long concertId) {
         ConcertWithSchedules detail = concertService.getConcertDetail(concertId);
         Concert concert = detail.getConcert();
