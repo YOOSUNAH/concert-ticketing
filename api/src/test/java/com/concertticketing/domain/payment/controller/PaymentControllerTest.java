@@ -1,11 +1,11 @@
 package com.concertticketing.domain.payment.controller;
 
+import com.concertticketing.domain.auth.jwt.JwtTokenProvider;
 import com.concertticketing.domain.booking.dto.BookingCreateRequest;
 import com.concertticketing.domain.booking.dto.BookingCreateResponse;
 import com.concertticketing.domain.payment.dto.PaymentConfirmRequest;
-import com.concertticketing.domain.queue.dto.QueueEnterRequest;
-import com.concertticketing.domain.queue.dto.QueueEnterResponse;
-import com.concertticketing.domain.queue.dto.QueueStatusResponse;
+import com.concertticketing.domain.queue.dto.QueueEntryResult;
+import com.concertticketing.domain.queue.dto.QueueStatusResult;
 import com.concertticketing.domain.queue.service.QueueService;
 import com.concertticketing.support.IntegrationTestBase;
 import org.junit.jupiter.api.Test;
@@ -18,6 +18,9 @@ class PaymentControllerTest extends IntegrationTestBase {
 
     @Autowired
     QueueService queueService;
+
+    @Autowired
+    JwtTokenProvider jwtTokenProvider;
 
     @Test
     void 결제_확정_성공() {
@@ -42,21 +45,12 @@ class PaymentControllerTest extends IntegrationTestBase {
     }
 
     private Long createBooking(String token) {
-        QueueEnterResponse enter = webTestClient.post().uri("/queue/enter")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                .bodyValue(new QueueEnterRequest(1L))
-                .exchange()
-                .expectBody(QueueEnterResponse.class)
-                .returnResult().getResponseBody();
+        Long userId = jwtTokenProvider.getUserIdFromToken(token);
 
+        // queue-api 분리 후 QueueService 직접 호출 (큐 엔드포인트는 queue-api에 있음)
+        QueueEntryResult enter = queueService.enterQueue(userId, 1L);
         queueService.processQueue(1L);
-
-        QueueStatusResponse status = webTestClient.get()
-                .uri("/queue/status?queueToken={t}", enter.getQueueToken())
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                .exchange()
-                .expectBody(QueueStatusResponse.class)
-                .returnResult().getResponseBody();
+        QueueStatusResult status = queueService.getQueueStatus(userId, enter.getQueueToken());
 
         BookingCreateResponse created = webTestClient.post().uri("/bookings")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)

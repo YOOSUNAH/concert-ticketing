@@ -10,6 +10,9 @@ import java.util.UUID;
 
 public class QueueService {
 
+    public static final String CLOSED_REASON_SOLD_OUT = "SOLD_OUT";
+    private static final int CLOSED_TTL_SECONDS = 3600;
+
     private final QueueRepository queueRepository;
     private final QueueProperties properties;
 
@@ -20,11 +23,16 @@ public class QueueService {
 
     /**
      * (1) 대기열 입장
+     * - 매진된 큐는 진입 거부
      * - WAITING Sorted Set에 추가 (score = 현재시각)
      * - heartbeat 설정
      * - 순번 조회 후 반환
      */
     public QueueEntryResult enterQueue(Long userId, Long scheduleId) {
+        if (queueRepository.getQueueClosedReason(scheduleId) != null) {
+            throw new IllegalStateException("이미 매진되어 대기열이 종료되었습니다.");
+        }
+
         long now = System.currentTimeMillis();
 
         queueRepository.refreshHeartbeat(scheduleId, userId, properties.getHeartbeatTtlSeconds());
@@ -42,12 +50,18 @@ public class QueueService {
 
     /**
      * (2) 대기 순번 조회 (폴링)
+     * - 큐 종료 상태이면 종료 사유(SOLD_OUT 등) 반환
      * - heartbeat TTL 갱신
      * - ACTIVE이면 admissionToken 반환
      * - WAITING이면 현재 순번 + 예상 대기시간 반환
      */
     public QueueStatusResult getQueueStatus(Long userId, String queueToken) {
         Long scheduleId = resolveScheduleId(queueToken);
+
+        String closedReason = queueRepository.getQueueClosedReason(scheduleId);
+        if (closedReason != null) {
+            return new QueueStatusResult(0, closedReason, null);
+        }
 
         queueRepository.refreshHeartbeat(scheduleId, userId, properties.getHeartbeatTtlSeconds());
 
@@ -130,5 +144,20 @@ public class QueueService {
             queueRepository.removeFromWaiting(scheduleId, candidateUserId);
             admitted++;
         }
+    }
+
+    /**
+     * (4) 매진 감지 시 큐 강제 종료 (queue-worker에서 호출)
+     * - WAITING ZSet 삭제
+     * - closed 플래그 set → 폴링 응답이 SOLD_OUT 반환하도록
+     */
+    public void closeSoldOutQueue(Long scheduleId) {
+        queueRepository.deleteWaitingQueue(scheduleId);
+        queueRepository.markQueueClosed(scheduleId, CLOSED_REASON_SOLD_OUT, CLOSED_TTL_SECONDS);
+    }
+
+    /** 매진 플래그 존재 여부 (queue-worker 스케줄러용). */
+    public boolean isSoldOut(Long scheduleId) {
+        return queueRepository.isSoldOut(scheduleId);
     }
 }
