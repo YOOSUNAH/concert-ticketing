@@ -3,6 +3,7 @@ package com.concertticketing.domain.payment.controller;
 import com.concertticketing.auth.AuthUserId;
 import com.concertticketing.domain.booking.dto.BookingStatus;
 import com.concertticketing.domain.booking.entity.Booking;
+import com.concertticketing.domain.booking.service.BookingFacade;
 import com.concertticketing.domain.booking.service.BookingService;
 import com.concertticketing.domain.concert.entity.ConcertRef;
 import com.concertticketing.domain.concert.service.ConcertRefService;
@@ -28,15 +29,18 @@ import java.util.Map;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final BookingFacade bookingFacade;
     private final BookingService bookingService;
     private final ConcertRefService concertRefService;
     private final SeatService seatService;
 
     public PaymentController(PaymentService paymentService,
+                             BookingFacade bookingFacade,
                              BookingService bookingService,
                              ConcertRefService concertRefService,
                              SeatService seatService) {
         this.paymentService = paymentService;
+        this.bookingFacade = bookingFacade;
         this.bookingService = bookingService;
         this.concertRefService = concertRefService;
         this.seatService = seatService;
@@ -61,7 +65,7 @@ public class PaymentController {
             return ResponseEntity.ok(toSuccessResponse(payment, userId));
         } catch (PaymentGatewayException e) {
             // PG 실패 → 예매 실패 처리 (좌석 복구 + booking CANCELLED)
-            bookingService.failBooking(request.getBookingId());
+            bookingFacade.failBooking(request.getBookingId());
             return ResponseEntity.status(400).body(Map.of("code", "PAYMENT_FAILED"));
         }
     }

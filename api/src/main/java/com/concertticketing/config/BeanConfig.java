@@ -3,6 +3,7 @@ package com.concertticketing.config;
 import com.concertticketing.domain.auth.jwt.JwtTokenProvider;
 import com.concertticketing.domain.auth.service.AuthService;
 import com.concertticketing.domain.booking.repository.BookingRepository;
+import com.concertticketing.domain.booking.service.BookingFacade;
 import com.concertticketing.domain.booking.service.BookingService;
 import com.concertticketing.domain.concert.repository.ConcertRefRepository;
 import com.concertticketing.domain.concert.service.ConcertRefService;
@@ -94,13 +95,18 @@ public class BeanConfig {
     }
 
     @Bean
-    public BookingService bookingService(BookingRepository bookingRepository,
-                                         SeatService seatService,
-                                         ConcertRefService concertRefService,
-                                         PaymentService paymentService,
-                                         QueueService queueService,
-                                         SoldOutService soldOutService) {
-        return new BookingService(bookingRepository, seatService, concertRefService,
-                paymentService, queueService, soldOutService);
+    public BookingService bookingService(BookingRepository bookingRepository) {
+        return new BookingService(bookingRepository);
+    }
+
+    @Bean
+    public BookingFacade bookingFacade(BookingService bookingService,
+                                       QueueService queueService,
+                                       SeatService seatService,
+                                       ConcertRefService concertRefService,
+                                       PaymentService paymentService,
+                                       SoldOutService soldOutService) {
+        return new BookingFacade(bookingService, queueService, seatService,
+                concertRefService, paymentService, soldOutService);
     }
 }
