@@ -15,10 +15,10 @@ import com.concertticketing.domain.schedule.repository.ScheduleRefRepository;
 import com.concertticketing.domain.seat.entity.Seat;
 import com.concertticketing.domain.seat.repository.SeatRepository;
 import com.concertticketing.domain.soldout.SoldOutService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -44,15 +44,7 @@ class AdminConcertServiceTest {
     @Mock ConcertRepository concertRepository;
     @Mock SoldOutService soldOutService;
 
-    AdminConcertService sut;
-
-    @BeforeEach
-    void setUp() {
-        sut = new AdminConcertService(
-                concertRefRepository, scheduleRefRepository,
-                seatRepository, concertRepository, soldOutService
-        );
-    }
+    @InjectMocks AdminConcertService sut;
 
     // ===== createConcert: dual-write 검증 =====
 
