@@ -8,6 +8,7 @@ import com.concertticketing.domain.booking.dto.BookingDetailResponse;
 import com.concertticketing.domain.booking.dto.BookingListResponse;
 import com.concertticketing.domain.booking.dto.BookingStatus;
 import com.concertticketing.domain.booking.entity.Booking;
+import com.concertticketing.domain.booking.service.BookingFacade;
 import com.concertticketing.domain.booking.service.BookingService;
 import com.concertticketing.domain.payment.entity.Payment;
 import com.concertticketing.domain.payment.service.PaymentService;
@@ -35,15 +36,18 @@ import java.util.stream.Collectors;
 @RequestMapping("/bookings")
 public class BookingController {
 
+    private final BookingFacade bookingFacade;
     private final BookingService bookingService;
     private final UserService userService;
     private final SeatService seatService;
     private final PaymentService paymentService;
 
-    public BookingController(BookingService bookingService,
+    public BookingController(BookingFacade bookingFacade,
+                             BookingService bookingService,
                              UserService userService,
                              SeatService seatService,
                              PaymentService paymentService) {
+        this.bookingFacade = bookingFacade;
         this.bookingService = bookingService;
         this.userService = userService;
         this.seatService = seatService;
@@ -56,7 +60,7 @@ public class BookingController {
             @AuthUserId Long userId,
             @RequestBody BookingCreateRequest request
     ) {
-        Booking booking = bookingService.createBooking(
+        Booking booking = bookingFacade.createBooking(
                 userId, request.getScheduleId(), request.getSeatIds(), request.getAdmissionToken()
         );
         User user = userService.getUser(userId);
@@ -140,7 +144,7 @@ public class BookingController {
                 .map(p -> p.getAmount() + p.getPointUsed())
                 .orElse(0);
 
-        Booking cancelled = bookingService.cancelBooking(bookingId, userId);
+        Booking cancelled = bookingFacade.cancelBooking(bookingId, userId);
 
         return ResponseEntity.ok(new BookingCancelResponse(
                 cancelled.getId(),
