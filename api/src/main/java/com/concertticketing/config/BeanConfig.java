@@ -7,6 +7,7 @@ import com.concertticketing.domain.booking.service.BookingFacade;
 import com.concertticketing.domain.booking.service.BookingService;
 import com.concertticketing.domain.concert.repository.ConcertRefRepository;
 import com.concertticketing.domain.concert.service.ConcertRefService;
+import com.concertticketing.domain.notification.service.NotificationService;
 import com.concertticketing.domain.payment.gateway.PaymentGateway;
 import com.concertticketing.domain.payment.repository.PaymentRepository;
 import com.concertticketing.domain.payment.service.PaymentService;
@@ -110,6 +111,11 @@ public class BeanConfig {
                                          ApplicationEventPublisher eventPublisher) {
         return new PaymentService(paymentRepository, bookingRepository, userRepository,
                 paymentGateway, eventPublisher);
+    }
+
+    @Bean
+    public NotificationService notificationService() {
+        return new NotificationService();
     }
 
     @Bean
