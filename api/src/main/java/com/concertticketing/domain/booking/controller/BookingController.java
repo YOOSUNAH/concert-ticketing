@@ -16,6 +16,8 @@ import com.concertticketing.domain.seat.entity.Seat;
 import com.concertticketing.domain.seat.service.SeatService;
 import com.concertticketing.domain.user.entity.User;
 import com.concertticketing.domain.user.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,28 +32,35 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/bookings")
 public class BookingController {
 
+    private static final Logger log = LoggerFactory.getLogger(BookingController.class);
+
     private final BookingFacade bookingFacade;
     private final BookingService bookingService;
     private final UserService userService;
     private final SeatService seatService;
     private final PaymentService paymentService;
+    private final Executor ioExecutor;
 
     public BookingController(BookingFacade bookingFacade,
                              BookingService bookingService,
                              UserService userService,
                              SeatService seatService,
-                             PaymentService paymentService) {
+                             PaymentService paymentService,
+                             Executor ioExecutor) {
         this.bookingFacade = bookingFacade;
         this.bookingService = bookingService;
         this.userService = userService;
         this.seatService = seatService;
         this.paymentService = paymentService;
+        this.ioExecutor = ioExecutor;
     }
 
     // 예매 생성 - Private
@@ -72,31 +81,64 @@ public class BookingController {
         ));
     }
 
-    // 예매 내역 조회 - Private
+    // 예매 내역 조회 - Private (CompletableFuture 비동기 전환)
     @GetMapping("/me")
-    public ResponseEntity<BookingListResponse> getMyBookings(
+    public CompletableFuture<ResponseEntity<BookingListResponse>> getMyBookings(
             @AuthUserId Long userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        List<Booking> bookings = bookingService.getMyBookings(userId, page, size);
-        long total = bookingService.getMyBookingsCount(userId);
-        int totalPages = (int) Math.ceil((double) total / size);
+        // [1] 톰캣 워커 스레드(http-nio-*). CompletableFuture를 반환하는 순간 이 스레드는 즉시 반납된다.
+        log.info("[1] controller 진입 thread = {}", Thread.currentThread().getName());
+
+        // (A) 서로 독립적인 두 조회를 ioExecutor에서 병렬 실행
+        CompletableFuture<List<Booking>> bookingsFuture = CompletableFuture.supplyAsync(() -> {
+            log.info("[2] getMyBookings(목록) 처리 thread = {}", Thread.currentThread().getName());
+            return bookingService.getMyBookings(userId, page, size);
+        }, ioExecutor);
+
+        CompletableFuture<Long> countFuture = CompletableFuture.supplyAsync(() -> {
+            log.info("[3] getMyBookingsCount(개수) 처리 thread = {}", Thread.currentThread().getName());
+            return bookingService.getMyBookingsCount(userId);
+        }, ioExecutor);
+
+        // (B) 두 독립 결과를 합성 (thenCombine)
+        return bookingsFuture
+                .thenCombine(countFuture, (bookings, total) -> {
+                    log.info("[4] 합성(thenCombine) thread = {}", Thread.currentThread().getName());
+                    return new PageData(bookings, total);
+                })
+                // (C) bookings에 의존하는 좌석 일괄 조회를 이어서 실행 (thenCompose)
+                .thenCompose(pageData -> {
+                    List<Long> allSeatIds = pageData.bookings().stream()
+                            .flatMap(b -> b.getSeatIds().stream()).distinct().toList();
+                    return CompletableFuture.supplyAsync(() -> {
+                        log.info("[5] getSeatsByIds(좌석) 처리 thread = {}", Thread.currentThread().getName());
+                        Map<Long, Seat> seatById = seatService.getSeatsByIds(allSeatIds).stream()
+                                .collect(Collectors.toMap(Seat::getId, s -> s));
+                        return buildResponse(pageData, page, size, seatById);
+                    }, ioExecutor);
+                })
+                // (D) 최종 매핑
+                .thenApply(body -> {
+                    log.info("[6] 응답 조립 thread = {}", Thread.currentThread().getName());
+                    return ResponseEntity.ok(body);
+                });
+    }
+
+    private BookingListResponse buildResponse(PageData pageData, int page, int size, Map<Long, Seat> seatById) {
+        int totalPages = (int) Math.ceil((double) pageData.total() / size);
         boolean hasNext = page + 1 < totalPages;
 
-        // 좌석 정보만 일괄 조회 (Concert/Schedule은 Booking 비정규화 필드로 처리)
-        List<Long> allSeatIds = bookings.stream()
-                .flatMap(b -> b.getSeatIds().stream()).distinct().toList();
-        Map<Long, Seat> seatById = seatService.getSeatsByIds(allSeatIds).stream()
-                .collect(Collectors.toMap(Seat::getId, s -> s));
-
-        List<BookingListResponse.BookingItem> items = bookings.stream()
+        List<BookingListResponse.BookingItem> items = pageData.bookings().stream()
                 .map(b -> mapToItem(b, seatById))
                 .toList();
 
-        return ResponseEntity.ok(
-                new BookingListResponse(items, page, size, total, totalPages, hasNext)
-        );
+        return new BookingListResponse(items, page, size, pageData.total(), totalPages, hasNext);
+    }
+
+    // 병렬 조회(목록 + 개수) 합성 결과를 담는 중간 캐리어
+    private record PageData(List<Booking> bookings, long total) {
     }
 
     // 예매 내역 상세 조회 - Private
