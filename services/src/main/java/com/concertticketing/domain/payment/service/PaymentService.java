@@ -8,6 +8,7 @@ import com.concertticketing.domain.payment.gateway.PaymentGateway;
 import com.concertticketing.domain.payment.repository.PaymentRepository;
 import com.concertticketing.domain.user.entity.User;
 import com.concertticketing.domain.user.repository.UserRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 public class PaymentService {
 
@@ -35,7 +36,11 @@ public class PaymentService {
      * 5. 결제 정보 저장
      * 6. 예매 상태를 PAID로 변경
      * 7. 포인트 차감 반영
+     *
+     * 결제/예매/포인트 save를 한 트랜잭션으로 묶어 부분 커밋을 방지한다.
+     * (동시에, 이후 도입할 결제 완료 이벤트의 AFTER_COMMIT 발화 전제가 된다.)
      */
+    @Transactional
     public Payment confirmPayment(Long bookingId, String paymentKey, String orderId,
                                   int amount, int pointUsed, String paymentMethod) {
         // 1. 예매 조회 & 상태 확인
