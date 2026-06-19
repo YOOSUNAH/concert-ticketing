@@ -6,6 +6,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Repository;
 
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -142,8 +145,16 @@ public class RedisQueueRepository implements QueueRepository {
     // === 잔여 좌석 카운터 + 매진/큐종료 플래그 ===
 
     @Override
-    public void initRemainingSeats(Long scheduleId, int total) {
-        redis.opsForValue().set(remainingSeatsKey(scheduleId), String.valueOf(total));
+    public void initRemainingSeats(Long scheduleId, int total, LocalDate scheduleDate) {
+        String key = remainingSeatsKey(scheduleId);
+        redis.opsForValue().set(key, String.valueOf(total));
+        Duration ttl = Duration.between(
+                LocalDateTime.now(),
+                scheduleDate.plusDays(1).atStartOfDay()
+        );
+        if (!ttl.isNegative()) {
+            redis.expire(key, ttl);
+        }
     }
 
     @Override
@@ -160,6 +171,10 @@ public class RedisQueueRepository implements QueueRepository {
     @Override
     public void markSoldOut(Long scheduleId) {
         redis.opsForValue().set(soldOutKey(scheduleId), "1");
+        Long remainingTtl = redis.getExpire(remainingSeatsKey(scheduleId));
+        if (remainingTtl != null && remainingTtl > 0) {
+            redis.expire(soldOutKey(scheduleId), Duration.ofSeconds(remainingTtl));
+        }
     }
 
     @Override

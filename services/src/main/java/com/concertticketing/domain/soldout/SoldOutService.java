@@ -10,8 +10,8 @@ public class SoldOutService {
         this.queueRepository = queueRepository;
     }
 
-    public void initRemainingSeats(Long scheduleId, int total) {
-        queueRepository.initRemainingSeats(scheduleId, total);
+    public void initRemainingSeats(Long scheduleId, int total, java.time.LocalDate scheduleDate) {
+        queueRepository.initRemainingSeats(scheduleId, total, scheduleDate);
     }
 
     /**
