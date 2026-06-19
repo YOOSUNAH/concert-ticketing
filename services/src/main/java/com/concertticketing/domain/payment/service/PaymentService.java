@@ -4,11 +4,15 @@ import com.concertticketing.domain.booking.entity.Booking;
 import com.concertticketing.domain.booking.entity.BookingStatus;
 import com.concertticketing.domain.booking.repository.BookingRepository;
 import com.concertticketing.domain.payment.entity.Payment;
+import com.concertticketing.domain.payment.event.PaymentConfirmedEvent;
 import com.concertticketing.domain.payment.gateway.PaymentGateway;
 import com.concertticketing.domain.payment.repository.PaymentRepository;
 import com.concertticketing.domain.user.entity.User;
 import com.concertticketing.domain.user.repository.UserRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 public class PaymentService {
 
@@ -16,15 +20,18 @@ public class PaymentService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final PaymentGateway paymentGateway;
+    private final ApplicationEventPublisher eventPublisher;
 
     public PaymentService(PaymentRepository paymentRepository,
                           BookingRepository bookingRepository,
                           UserRepository userRepository,
-                          PaymentGateway paymentGateway) {
+                          PaymentGateway paymentGateway,
+                          ApplicationEventPublisher eventPublisher) {
         this.paymentRepository = paymentRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.paymentGateway = paymentGateway;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -81,6 +88,14 @@ public class PaymentService {
         if (user != null) {
             userRepository.save(user);
         }
+
+        // 8. 결제 완료 이벤트 발행 (트랜잭션 안에서 발행 → 소비는 AFTER_COMMIT로 커밋 후 지연)
+        eventPublisher.publishEvent(new PaymentConfirmedEvent(
+                UUID.randomUUID().toString(),
+                bookingId,
+                booking.getUserId(),
+                amount,
+                pointUsed));
 
         return payment;
     }

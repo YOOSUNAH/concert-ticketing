@@ -24,6 +24,7 @@ import com.concertticketing.infra.payment.FakePaymentGateway;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -105,8 +106,10 @@ public class BeanConfig {
     public PaymentService paymentService(PaymentRepository paymentRepository,
                                          BookingRepository bookingRepository,
                                          UserRepository userRepository,
-                                         PaymentGateway paymentGateway) {
-        return new PaymentService(paymentRepository, bookingRepository, userRepository, paymentGateway);
+                                         PaymentGateway paymentGateway,
+                                         ApplicationEventPublisher eventPublisher) {
+        return new PaymentService(paymentRepository, bookingRepository, userRepository,
+                paymentGateway, eventPublisher);
     }
 
     @Bean
