@@ -10,6 +10,7 @@ import com.concertticketing.domain.schedule.entity.ScheduleRef;
 import com.concertticketing.domain.seat.entity.Seat;
 import com.concertticketing.domain.seat.service.SeatService;
 import com.concertticketing.domain.soldout.SoldOutService;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -48,6 +49,7 @@ public class BookingFacade {
      * 3. 좌석 SOLD 처리 + 매진 카운터 감소
      * 4. 예매 생성
      */
+    @Transactional
     public Booking createBooking(Long userId, Long scheduleId, List<Long> seatIds, String admissionToken) {
         queueService.validateAdmissionToken(userId, scheduleId, admissionToken);
 
@@ -71,6 +73,7 @@ public class BookingFacade {
     /**
      * 예매 실패 처리 (결제 실패 시)
      */
+    @Transactional
     public Booking failBooking(Long bookingId) {
         Booking booking = bookingService.getBooking(bookingId);
 
@@ -88,6 +91,7 @@ public class BookingFacade {
     /**
      * 예매 취소
      */
+    @Transactional
     public Booking cancelBooking(Long bookingId, Long userId) {
         Booking booking = bookingService.getBookingDetail(bookingId, userId);
 
