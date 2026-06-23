@@ -24,4 +24,5 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'com.h2database:h2' // EDA AFTER_COMMIT 슬라이스 테스트용 인메모리 트랜잭션
 }

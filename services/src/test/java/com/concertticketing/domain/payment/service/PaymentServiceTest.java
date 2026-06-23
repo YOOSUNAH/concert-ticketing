@@ -5,12 +5,14 @@ import com.concertticketing.domain.booking.entity.BookingStatus;
 import com.concertticketing.domain.booking.repository.BookingRepository;
 import com.concertticketing.domain.payment.entity.Payment;
 import com.concertticketing.domain.payment.entity.PaymentStatus;
+import com.concertticketing.domain.payment.event.PaymentConfirmedEvent;
 import com.concertticketing.domain.payment.gateway.PaymentGateway;
 import com.concertticketing.domain.payment.gateway.PaymentGatewayException;
 import com.concertticketing.domain.payment.repository.PaymentRepository;
 import com.concertticketing.domain.user.entity.User;
 import com.concertticketing.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -49,6 +51,9 @@ class PaymentServiceTest {
     @Mock
     PaymentGateway paymentGateway;
 
+    @Mock
+    ApplicationEventPublisher eventPublisher;
+
     @InjectMocks
     PaymentService paymentService;
 
@@ -85,6 +90,7 @@ class PaymentServiceTest {
         verify(paymentRepository).save(any(Payment.class));
         verify(bookingRepository).save(booking);
         verify(userRepository).save(user); // 포인트 차감 영속화
+        verify(eventPublisher).publishEvent(any(PaymentConfirmedEvent.class)); // 결제 완료 이벤트 발행
     }
 
     @Test
@@ -166,6 +172,7 @@ class PaymentServiceTest {
         verify(paymentRepository, never()).save(any());
         verify(bookingRepository, never()).save(any());
         verify(userRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any()); // 결제 미확정 → 이벤트도 미발행
         assertEquals(BookingStatus.PENDING, booking.getStatus()); // booking 상태도 그대로
     }
 
