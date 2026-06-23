@@ -108,17 +108,17 @@ public class BookingController {
                     log.info("[4] 합성(thenCombine) thread = {}", Thread.currentThread().getName());
                     return new PageData(bookings, total);
                 })
-                // (C) bookings에 의존하는 좌석 일괄 조회를 이어서 실행 (thenCompose)
-                .thenCompose(pageData -> {
+                // (C) bookings에 의존하는 좌석 일괄 조회를 이어서 실행 (thenApplyAsync)
+                //     콜백이 일반값(BookingListResponse)을 반환하므로 supplyAsync로 다시 감싸지 않고
+                //     thenApplyAsync(fn, ioExecutor)로 ioExecutor 스레드에서 비동기 변환한다.
+                .thenApplyAsync(pageData -> {
+                    log.info("[5] getSeatsByIds(좌석) 처리 thread = {}", Thread.currentThread().getName());
                     List<Long> allSeatIds = pageData.bookings().stream()
                             .flatMap(b -> b.getSeatIds().stream()).distinct().toList();
-                    return CompletableFuture.supplyAsync(() -> {
-                        log.info("[5] getSeatsByIds(좌석) 처리 thread = {}", Thread.currentThread().getName());
-                        Map<Long, Seat> seatById = seatService.getSeatsByIds(allSeatIds).stream()
-                                .collect(Collectors.toMap(Seat::getId, s -> s));
-                        return buildResponse(pageData, page, size, seatById);
-                    }, ioExecutor);
-                })
+                    Map<Long, Seat> seatById = seatService.getSeatsByIds(allSeatIds).stream()
+                            .collect(Collectors.toMap(Seat::getId, s -> s));
+                    return buildResponse(pageData, page, size, seatById);
+                }, ioExecutor)
                 // (D) 최종 매핑
                 .thenApply(body -> {
                     log.info("[6] 응답 조립 thread = {}", Thread.currentThread().getName());
