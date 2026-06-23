@@ -48,17 +48,16 @@ public class ScheduleController {
                     log.info("[2] isSoldOut 처리 thread = {}", Thread.currentThread().getName());
                     return queueRepository.isSoldOut(scheduleId);
                 }, ioExecutor)
-                // (B) 이전 결과(soldOut)에 의존해 다음 비동기 작업을 연결 (chain)
-                .thenCompose(soldOut -> {
+                // (B) 이전 결과(soldOut)에 의존해 응답을 만든다 (thenApplyAsync)
+                //     두 분기 모두 일반값(SeatListResponse)을 반환하므로 completedFuture로 감싸지 않고
+                //     thenApplyAsync(fn, ioExecutor)로 통일한다. soldOut이면 if에서 바로 반환해 DB 조회를 건너뛴다.
+                .thenApplyAsync(soldOut -> {
                     if (soldOut) {
-                        return CompletableFuture.completedFuture(
-                                new SeatListResponse(Collections.emptyList(), true));
+                        return new SeatListResponse(Collections.emptyList(), true);
                     }
-                    return CompletableFuture.supplyAsync(() -> {
-                        log.info("[3] getSeats(DB) 처리 thread = {}", Thread.currentThread().getName());
-                        return toResponse(seatService.getSeats(scheduleId));
-                    }, ioExecutor);
-                })
+                    log.info("[3] getSeats(DB) 처리 thread = {}", Thread.currentThread().getName());
+                    return toResponse(seatService.getSeats(scheduleId));
+                }, ioExecutor)
                 // (C) 최종 매핑
                 .thenApply(body -> {
                     log.info("[4] 응답 조립 thread = {}", Thread.currentThread().getName());
