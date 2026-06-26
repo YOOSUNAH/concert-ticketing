@@ -7,7 +7,9 @@ import com.concertticketing.domain.booking.service.BookingFacade;
 import com.concertticketing.domain.booking.service.BookingService;
 import com.concertticketing.domain.concert.repository.ConcertRefRepository;
 import com.concertticketing.domain.concert.service.ConcertRefService;
+import com.concertticketing.domain.notification.sender.NotificationSender;
 import com.concertticketing.domain.notification.service.NotificationService;
+import com.concertticketing.infra.notification.FakeNotificationSender;
 import com.concertticketing.domain.payment.gateway.PaymentGateway;
 import com.concertticketing.domain.payment.repository.PaymentRepository;
 import com.concertticketing.domain.payment.service.PaymentService;
@@ -114,8 +116,13 @@ public class BeanConfig {
     }
 
     @Bean
-    public NotificationService notificationService() {
-        return new NotificationService();
+    public NotificationSender notificationSender() {
+        return new FakeNotificationSender();
+    }
+
+    @Bean
+    public NotificationService notificationService(NotificationSender notificationSender) {
+        return new NotificationService(notificationSender);
     }
 
     @Bean
