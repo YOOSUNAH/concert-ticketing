@@ -1,6 +1,6 @@
 package com.concertticketing.domain.payment.listener;
 
-import com.concertticketing.domain.notification.service.NotificationService;
+import com.concertticketing.domain.notification.NotificationDispatcher;
 import com.concertticketing.domain.payment.event.PaymentConfirmedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,8 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.sql.DataSource;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -54,13 +53,13 @@ class PaymentEventTransactionalTest {
         }
 
         @Bean
-        NotificationService notificationService() {
-            return mock(NotificationService.class);
+        NotificationDispatcher notificationDispatcher() {
+            return mock(NotificationDispatcher.class);
         }
 
         @Bean
-        PaymentEventListener paymentEventListener(NotificationService notificationService) {
-            return new PaymentEventListener(notificationService);
+        PaymentEventListener paymentEventListener(NotificationDispatcher notificationDispatcher) {
+            return new PaymentEventListener(notificationDispatcher);
         }
 
         @Bean
@@ -90,11 +89,11 @@ class PaymentEventTransactionalTest {
     TxPublisher txPublisher;
 
     @Autowired
-    NotificationService notificationService;
+    NotificationDispatcher notificationDispatcher;
 
     @BeforeEach
     void resetMock() {
-        reset(notificationService); // 공유 컨텍스트라 테스트 간 호출 횟수 초기화
+        reset(notificationDispatcher); // 공유 컨텍스트라 테스트 간 호출 횟수 초기화
     }
 
     @Test
@@ -102,7 +101,7 @@ class PaymentEventTransactionalTest {
     void commit_firesListener() {
         txPublisher.publishWithinTx(false);
 
-        verify(notificationService).sendBookingConfirmed(1L, 999L, 237000);
+        verify(notificationDispatcher).dispatch(new PaymentConfirmedEvent("evt-1", 999L, 1L, 237000, 5000));
     }
 
     @Test
@@ -110,6 +109,6 @@ class PaymentEventTransactionalTest {
     void rollback_doesNotFireListener() {
         assertThrows(RuntimeException.class, () -> txPublisher.publishWithinTx(true));
 
-        verify(notificationService, never()).sendBookingConfirmed(anyLong(), anyLong(), anyInt());
+        verify(notificationDispatcher, never()).dispatch(any());
     }
 }
