@@ -1,5 +1,7 @@
 package com.concertticketing.domain.notification;
 
+import com.concertticketing.domain.notification.event.NotificationFailedEvent;
+import com.concertticketing.domain.notification.event.NotificationFailureType;
 import com.concertticketing.domain.notification.exception.NotificationPermanentException;
 import com.concertticketing.domain.notification.exception.NotificationTransientException;
 import com.concertticketing.domain.notification.service.NotificationService;
@@ -7,6 +9,7 @@ import com.concertticketing.domain.payment.event.PaymentConfirmedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 /**
@@ -33,14 +36,17 @@ public class NotificationDispatcher {
     private static final Logger log = LoggerFactory.getLogger(NotificationDispatcher.class);
 
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
     private final int maxAttempts;
     private final long baseBackoffMillis;
 
     public NotificationDispatcher(
             NotificationService notificationService,
+            ApplicationEventPublisher eventPublisher,
             @Value("${notification.retry.max-attempts:3}") int maxAttempts,
             @Value("${notification.retry.base-backoff-millis:500}") long baseBackoffMillis) {
         this.notificationService = notificationService;
+        this.eventPublisher = eventPublisher;
         this.maxAttempts = maxAttempts;
         this.baseBackoffMillis = baseBackoffMillis;
     }
@@ -53,9 +59,9 @@ public class NotificationDispatcher {
         try {
             sendWithRetry(event);
         } catch (NotificationPermanentException e) {
-            recordFailure(event, "영구 실패(재시도 안 함)", e);
+            publishFailure(event, NotificationFailureType.PERMANENT, e);
         } catch (NotificationTransientException e) {
-            recordFailure(event, "재시도 소진 실패", e);
+            publishFailure(event, NotificationFailureType.TRANSIENT_EXHAUSTED, e);
         }
     }
 
@@ -97,9 +103,12 @@ public class NotificationDispatcher {
         }
     }
 
-    private void recordFailure(PaymentConfirmedEvent event, String reason, Exception cause) {
-        // rollback 아님 — 결제는 성공 유지. 추적 가능하게 맥락과 함께 기록한다.
-        log.error("알림 {} - eventId={}, bookingId={}, userId={}, 사유={}",
-                reason, event.eventId(), event.bookingId(), event.userId(), cause.getMessage());
+    /**
+     * 최종 실패를 결과 이벤트로 발행한다. (rollback 아님 — 결제는 성공 유지)
+     * 경보·메트릭·DLQ 같은 후속 반응은 이 이벤트를 구독해 덧붙인다(디스패처는 수정 불필요).
+     */
+    private void publishFailure(PaymentConfirmedEvent event, NotificationFailureType type, Exception cause) {
+        eventPublisher.publishEvent(new NotificationFailedEvent(
+                event.eventId(), event.bookingId(), event.userId(), type, cause.getMessage()));
     }
 }
