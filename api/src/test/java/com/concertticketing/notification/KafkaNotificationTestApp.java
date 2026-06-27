@@ -43,4 +43,9 @@ public class KafkaNotificationTestApp {
                                                      ProcessedEventGuard processedEventGuard) {
         return new NotificationConsumer(notificationService, processedEventGuard);
     }
+
+    @Bean
+    public DltTestRecorder dltTestRecorder() {
+        return new DltTestRecorder();
+    }
 }
