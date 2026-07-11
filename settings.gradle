@@ -1,0 +1,11 @@
+pluginManagement {
+    includeBuild 'build-logic'
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.9.0'
+}
+
+rootProject.name = 'concert-ticketing'
+
+include 'api', 'admin-api', 'concert-api', 'queue-api', 'queue-worker', 'services', 'shared'

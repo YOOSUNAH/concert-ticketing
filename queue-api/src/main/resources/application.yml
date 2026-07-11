@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: queue-api
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration
+
+  data:
+    redis:
+      sentinel:
+        master: mymaster
+        nodes: localhost:26379
+
+server:
+  port: 8081
+
+jwt:
+  secret: concert-ticketing-jwt-secret-key-for-development-only-must-be-256-bits
+  validity-seconds: 3600
+
+queue:
+  heartbeat-threshold-seconds: 30
+  max-active-count: 2000
+  active-expire-seconds: 600
+
+logging:
+  level:
+    com.concertticketing.auth: DEBUG

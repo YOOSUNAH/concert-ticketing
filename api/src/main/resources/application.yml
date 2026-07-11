@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: concert-ticketing
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.mongodb.autoconfigure.MongoAutoConfiguration
+      - org.springframework.boot.data.mongodb.autoconfigure.DataMongoAutoConfiguration
+      - org.springframework.boot.data.mongodb.autoconfigure.DataMongoRepositoriesAutoConfiguration
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/concert
+    username: concert
+    password: concert
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_batch_fetch_size: 100
+    open-in-view: false
+
+  data:
+    redis:
+      sentinel:
+        master: mymaster
+        nodes: localhost:26379
+
+
+jwt:
+  secret: concert-ticketing-jwt-secret-key-for-development-only-must-be-256-bits
+  validity-seconds: 3600
+
+queue:
+  heartbeat-threshold-seconds: 30
+  max-active-count: 2000
+  active-expire-seconds: 600
+
+logging:
+  file:
+    name: app.log
+  level:
+    com.concertticketing.auth: DEBUG

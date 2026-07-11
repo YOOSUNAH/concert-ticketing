@@ -1,0 +1,17 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+### IntelliJ IDEA ###
+.idea
+
+### Mac OS ###
+.DS_Store
+
+### Logs ###
+*.log
+
+### Claude Code ###
+.claude/settings.local.json
+.claude/worktrees/

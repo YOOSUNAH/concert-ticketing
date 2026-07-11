@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: queue-worker
+  main:
+    web-application-type: none
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration
+
+  data:
+    redis:
+      sentinel:
+        master: mymaster
+        nodes: localhost:26379
+
+queue:
+  heartbeat-threshold-seconds: 30
+  max-active-count: 2000
+  active-expire-seconds: 600
+
+logging:
+  level:
+    com.concertticketing.domain.queue: DEBUG
