@@ -30,6 +30,30 @@ spring:
         master: mymaster
         nodes: localhost:26379
 
+  kafka:
+    # 로컬(IDE) 기본값. 컨테이너는 SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092 로 덮어씀.
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all          # 리더+ISR 복제 확인까지 — 발행 유실 방지
+      retries: 3
+      properties:
+        enable.idempotence: true  # 재전송 시 브로커 중복 적재 방지
+    consumer:
+      group-id: notification
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.concertticketing.*
+    listener:
+      ack-mode: record   # 레코드 처리 성공 시점에 오프셋 커밋 (실패 시 재처리 보장)
+
+notification:
+  kafka:
+    topic: payment.confirmed   # 결제 완료 → 알림 토픽
+
 
 jwt:
   secret: concert-ticketing-jwt-secret-key-for-development-only-must-be-256-bits

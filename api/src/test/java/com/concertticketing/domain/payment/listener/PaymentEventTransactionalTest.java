@@ -1,7 +1,7 @@
 package com.concertticketing.domain.payment.listener;
 
-import com.concertticketing.domain.notification.NotificationDispatcher;
 import com.concertticketing.domain.payment.event.PaymentConfirmedEvent;
+import com.concertticketing.infra.payment.PaymentConfirmedEventProducer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -53,13 +53,13 @@ class PaymentEventTransactionalTest {
         }
 
         @Bean
-        NotificationDispatcher notificationDispatcher() {
-            return mock(NotificationDispatcher.class);
+        PaymentConfirmedEventProducer paymentConfirmedEventProducer() {
+            return mock(PaymentConfirmedEventProducer.class);
         }
 
         @Bean
-        PaymentEventListener paymentEventListener(NotificationDispatcher notificationDispatcher) {
-            return new PaymentEventListener(notificationDispatcher);
+        PaymentEventListener paymentEventListener(PaymentConfirmedEventProducer producer) {
+            return new PaymentEventListener(producer);
         }
 
         @Bean
@@ -89,26 +89,24 @@ class PaymentEventTransactionalTest {
     TxPublisher txPublisher;
 
     @Autowired
-    NotificationDispatcher notificationDispatcher;
+    PaymentConfirmedEventProducer producer;
 
     @BeforeEach
     void resetMock() {
-        reset(notificationDispatcher); // 공유 컨텍스트라 테스트 간 호출 횟수 초기화
+        reset(producer); // 공유 컨텍스트라 테스트 간 호출 횟수 초기화
     }
 
     @Test
-    @DisplayName("트랜잭션이 커밋되면 AFTER_COMMIT 리스너가 발화해 알림이 나간다")
+    @DisplayName("트랜잭션이 커밋되면 AFTER_COMMIT 리스너가 발화해 Kafka로 발행된다")
     void commit_firesListener() {
         txPublisher.publishWithinTx(false);
-
-        verify(notificationDispatcher).dispatch(new PaymentConfirmedEvent("evt-1", 999L, 1L, 237000, 5000));
+        verify(producer).publish(new PaymentConfirmedEvent("evt-1", 999L, 1L, 237000, 5000));
     }
 
     @Test
     @DisplayName("트랜잭션이 롤백되면 AFTER_COMMIT 리스너가 발화하지 않는다 (유령 알림 차단)")
     void rollback_doesNotFireListener() {
         assertThrows(RuntimeException.class, () -> txPublisher.publishWithinTx(true));
-
-        verify(notificationDispatcher, never()).dispatch(any());
+        verify(producer, never()).publish(any());
     }
 }

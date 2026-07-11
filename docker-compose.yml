@@ -82,6 +82,44 @@ services:
     volumes:
       - mongo-data:/data/db
 
+  # Kafka 단일 브로커 (KRaft 모드 — Zookeeper 불필요).
+  # 리스너 2개: 컨테이너 내부 서비스는 kafka:9092(INTERNAL), 호스트(IDE/로컬)는 localhost:9092(EXTERNAL).
+  kafka:
+    image: apache/kafka:3.9.0
+    container_name: concert-kafka
+    ports:
+      - "9092:29092" # 호스트 localhost:9092 → 컨테이너 EXTERNAL 리스너(29092)
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # 단일 브로커이므로 내부 토픽 복제 계수를 1로 (기본 3이면 부팅 실패)
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    restart: unless-stopped
+
+  # Kafka 토픽/메시지/컨슈머랙 모니터링 UI (발표 데모용). http://localhost:8090
+  kafka-ui:
+    image: kafbat/kafka-ui:latest
+    container_name: concert-kafka-ui
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: concert
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      - kafka
+    restart: unless-stopped
+
   api:
     build:
       context: .
@@ -92,6 +130,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: concert
       SPRING_DATA_REDIS_SENTINEL_MASTER: mymaster
       SPRING_DATA_REDIS_SENTINEL_NODES: redis-sentinel-1:26379,redis-sentinel-2:26379,redis-sentinel-3:26379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     expose:
       - "8080"
     depends_on:
@@ -99,6 +138,7 @@ services:
       - redis-sentinel-1
       - redis-sentinel-2
       - redis-sentinel-3
+      - kafka
     restart: unless-stopped
     deploy:
       replicas: 2
@@ -180,3 +220,4 @@ volumes:
   redis-master-data:
   redis-replica-data:
   mongo-data:
+  kafka-data:
