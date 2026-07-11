@@ -35,6 +35,11 @@ public abstract class IntegrationTestBase {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         registry.add("spring.data.redis.host", REDIS::getHost);
         registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
+        // 이 통합테스트들은 알림(Kafka) 흐름을 검증하지 않는다. 브로커 없이도 돌도록
+        // 컨슈머는 띄우지 않고, 결제 시 발행되는 produce는 빠르게 실패(fast-fail)시킨다.
+        // Kafka 발행→소비 검증은 @EmbeddedKafka 슬라이스 테스트가 따로 담당한다.
+        registry.add("spring.kafka.listener.auto-startup", () -> "false");
+        registry.add("spring.kafka.producer.properties.max.block.ms", () -> "500");
     }
 
     @LocalServerPort

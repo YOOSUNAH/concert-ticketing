@@ -1,7 +1,7 @@
 package com.concertticketing.domain.payment.listener;
 
-import com.concertticketing.domain.notification.NotificationDispatcher;
 import com.concertticketing.domain.payment.event.PaymentConfirmedEvent;
+import com.concertticketing.infra.payment.PaymentConfirmedEventProducer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,19 +15,18 @@ import static org.mockito.Mockito.verify;
 class PaymentEventListenerTest {
 
     @Mock
-    NotificationDispatcher dispatcher;
-
+    PaymentConfirmedEventProducer producer;
     @InjectMocks
     PaymentEventListener listener;
 
     @Test
-    @DisplayName("결제 완료 이벤트를 받으면 디스패처로 위임한다")
-    void onPaymentConfirmed_delegatesToDispatcher() {
+    @DisplayName("결제 완료 이벤트를 받으면 Kafka 프로듀서로 발행을 위임한다")
+    void onPaymentConfirmed_delegatesToProducer() {
         PaymentConfirmedEvent event = new PaymentConfirmedEvent(
                 "evt-1", 999L, 1L, 237000, 5000);
 
         listener.onPaymentConfirmed(event);
 
-        verify(dispatcher).dispatch(event);
+        verify(producer).publish(event);
     }
 }
