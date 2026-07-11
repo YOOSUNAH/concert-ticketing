@@ -100,7 +100,6 @@ class PaymentEventTransactionalTest {
     @DisplayName("트랜잭션이 커밋되면 AFTER_COMMIT 리스너가 발화해 Kafka로 발행된다")
     void commit_firesListener() {
         txPublisher.publishWithinTx(false);
-
         verify(producer).publish(new PaymentConfirmedEvent("evt-1", 999L, 1L, 237000, 5000));
     }
 
@@ -108,7 +107,6 @@ class PaymentEventTransactionalTest {
     @DisplayName("트랜잭션이 롤백되면 AFTER_COMMIT 리스너가 발화하지 않는다 (유령 알림 차단)")
     void rollback_doesNotFireListener() {
         assertThrows(RuntimeException.class, () -> txPublisher.publishWithinTx(true));
-
         verify(producer, never()).publish(any());
     }
 }
