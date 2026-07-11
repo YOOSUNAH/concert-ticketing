@@ -1,6 +1,5 @@
 package com.concertticketing.domain.payment.listener;
 
-
 import com.concertticketing.domain.payment.event.PaymentConfirmedEvent;
 import com.concertticketing.infra.payment.PaymentConfirmedEventProducer;
 import org.slf4j.Logger;
@@ -27,25 +26,21 @@ import org.springframework.transaction.event.TransactionalEventListener;
  *
  * <p>실패 격리: {@code @Async}는 더 이상 필요 없다 — 카프카 {@code send()}가 논블로킹이라
  * 커밋 스레드를 잡지 않는다. 발행 자체의 성공/실패는 프로듀서 콜백에서 기록한다.
-
  */
 @Component
 public class PaymentEventListener {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentEventListener.class);
 
-
     private final PaymentConfirmedEventProducer producer;
 
     public PaymentEventListener(PaymentConfirmedEventProducer producer) {
         this.producer = producer;
-
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPaymentConfirmed(PaymentConfirmedEvent event) {
         try {
-
             producer.publish(event);
         } catch (Exception e) {
             // send() 직전의 동기 단계(직렬화·파티셔너 등)에서 난 예외만 여기로 온다.

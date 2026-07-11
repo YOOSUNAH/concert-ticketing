@@ -16,7 +16,6 @@ class PaymentEventListenerTest {
 
     @Mock
     PaymentConfirmedEventProducer producer;
-
     @InjectMocks
     PaymentEventListener listener;
 

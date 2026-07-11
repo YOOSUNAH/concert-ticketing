@@ -108,5 +108,6 @@ class PaymentEventTransactionalTest {
     void rollback_doesNotFireListener() {
         assertThrows(RuntimeException.class, () -> txPublisher.publishWithinTx(true));
         verify(producer, never()).publish(any());
+
     }
 }
